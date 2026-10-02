@@ -71,6 +71,18 @@ El núcleo del proyecto (`src/core_stats/` y `src/bayesian/`) implementa directa
 
 ---
 
+### Bloque C: Métodos de Optimización Matemática (Temas 1, 2, 3 y 4 del Grado)
+* **Programación Lineal y Entera Mixta (MILP / Método Simplex - Temas 1 y 3)**:
+  * Despacho óptimo de flota de 412 guaguas y horas de conductor en horas punta insulares mediante `scipy.optimize.milp` (HiGHS) con precios sombra duales.
+* **Optimización Sin Restricciones (Descenso por Gradiente vs Newton - Tema 2)**:
+  * Calibración de la función de coste vial BPR calculando analíticamente el gradiente $\nabla f$ y la matriz Hessiana $\mathbf{H}$, contrastando convergencia lineal frente a cuadrática.
+* **Multiplicadores de Lagrange (Tema 3.2)**:
+  * Asignación óptima de frecuencias de servicio bajo restricción presupuestaria de kilómetros, con interpretación económica del multiplicador $\lambda^*$ (utilidad marginal).
+* **Metaheurísticas: Simulated Annealing y Algoritmos Genéticos (Tema 4)**:
+  * Enrutamiento óptimo de circuitos de refuerzo e inspección (TSP sobre paradas insulares clave) con operadores 2-opt y cruce Order Crossover (OX).
+
+---
+
 ## 📂 3. Estructura del Repositorio
 
 ```text
@@ -80,7 +92,8 @@ global/
 │   └── processed/                     # Telemetría operacional generada (Parquet y CSV)
 ├── src/
 │   ├── data_ingestion/
-│   │   └── extract_network.py         # Descarga de OSM, geocálculo ortodrómico (Haversine) y telemetría
+│   │   ├── extract_network.py         # Descarga de OSM, geocálculo ortodrómico (Haversine) y telemetría
+│   │   └── network_data.py            # Trazados viales, paradas oficiales y telemetría GPS en directo
 │   ├── core_stats/
 │   │   ├── distributions.py           # MLE, Poisson, Gamma, LogNormal, intervalos de confianza
 │   │   ├── hypothesis_testing.py      # Welch t-test, Mann-Whitney, ANOVA, Levene, Chi-cuadrado
@@ -90,13 +103,23 @@ global/
 │   │   ├── bayesian_regression.py     # Regresión lineal bayesiana, incertidumbre epistémica y HDI 95%
 │   │   ├── clustering_gmm.py          # Mezclas Gaussianas (GMM), EM y selección de k con BIC
 │   │   └── bayesian_network.py        # Red Bayesiana causal insular y Variable Elimination con pgmpy
+│   ├── optimization/
+│   │   ├── fleet_dispatch_milp.py     # Programación Lineal y Entera Mixta (HiGHS / Simplex)
+│   │   ├── unconstrained_gradient.py  # Descenso por Gradiente y Método de Newton con Hessiano
+│   │   ├── lagrangian_allocation.py   # Multiplicadores de Lagrange y coste sombra
+│   │   └── heuristic_routing.py       # Simulated Annealing y Algoritmo Genético (TSP insular)
+│   ├── analytics/
+│   │   └── visual_diagnostics.py      # Gauss-Markov 4-plot, Biplot PCA 2D, Bayes, Heatmap y Optimización
 │   └── dashboard/
-│       └── app.py                     # Aplicación web interactiva en Streamlit (El "Lavado de cara")
+│       └── app.py                     # Global Móvil 2.0 (Google Maps + 7 Pestañas Oficiales)
 ├── tests/
-│   └── test_pipeline.py               # Suite de tests unitarios y validación matemática
-├── requirements.txt                   # Dependencias fijadas del proyecto
+│   ├── test_mathematical_properties.py # Tests unitarios de inferencia estadística y bayesiana
+│   ├── test_optimization.py           # Tests unitarios de MILP, Newton, Lagrange y Heurísticas
+│   └── test_pipeline.py               # Test de integración del pipeline completo
+├── requirements.txt                   # Dependencias fijadas del proyecto (incluye folium y streamlit-folium)
 └── README.md                          # Documentación técnica del proyecto
 ```
+
 
 ---
 

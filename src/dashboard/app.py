@@ -1,13 +1,13 @@
 """GLOBAL Gran Canaria Móvil 2.0: Sistema Inteligente de Transporte Interurbano.
 
 Réplica exacta, moderna y fiel a la identidad corporativa oficial de Global (Salcai Utinsa S.A.):
-1. 🗺️ Mapa en Vivo & Flota GPS (Posicionamiento en tiempo real, paradas y ejes viales GC-1/GC-2/GC-110).
+1. 🗺️ Mapa en Vivo con Google Maps (Capas Oficiales de Google, Trazados Viales GC-1/GC-2/GC-110 y Flota GPS).
 2. 🚏 Siguiente Parada (Búsqueda por código oficial de 4 dígitos de la marquesina).
 3. 🧭 ¿A dónde quieres ir? (Calculadora de trayectos con Garantía de Llegada Bayesiana 95%).
 4. 💳 Fares & Cards / Saldo de Tarjeta (Bono Residente Canario, Wawa Joven, TransGC, regla 15 viajes).
-5. 🏪 Vendedor de Tickets (Puntos oficiales de recarga y oficinas de atención insulares).
+5. 🏪 Vendedor de Tickets (Puntos oficiales de recarga y oficinas insulares con Google Maps).
 6. ⚠️ Estado del Servicio & Radar de Carreteras (Inferencia causal en tiempo real con pgmpy).
-7. 🔬 Laboratorio de Datos / Mini-TFG ULPGC (Gauss-Markov 4-plot, PCA Biplot, Bayes y Heatmap).
+7. 🔬 Laboratorio de Datos & Métodos de Optimización (Temas 1, 2, 3 y 4 de Optimización ULPGC + AEDV).
 """
 
 from __future__ import annotations
@@ -20,11 +20,12 @@ ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+import folium
+from streamlit_folium import st_folium
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import pydeck as pdk
 import streamlit as st
 
 from src.analytics.visual_diagnostics import (
@@ -32,7 +33,10 @@ from src.analytics.visual_diagnostics import (
     plot_causal_dag_visual,
     plot_delay_heatmap,
     plot_gauss_markov_quad,
+    plot_heuristic_convergence,
+    plot_milp_dispatch_bars,
     plot_pca_biplot_stops,
+    plot_unconstrained_convergence,
 )
 from src.bayesian.bayesian_network import GranCanariaBayesianNetwork
 from src.bayesian.bayesian_regression import BayesianLinearRegressor
@@ -45,6 +49,15 @@ from src.data_ingestion.network_data import (
     TICKET_OFFICES,
     get_live_simulated_fleet,
     search_stop_by_code,
+)
+from src.optimization import (
+    OptimizationTrajectory,
+    optimize_bpr_gradient_descent,
+    optimize_bpr_newton,
+    solve_fleet_dispatch_milp,
+    solve_lagrangian_frequency_allocation,
+    solve_tsp_genetic_algorithm,
+    solve_tsp_simulated_annealing,
 )
 from src.passenger_services import (
     calculate_free_transit_progress,
@@ -60,7 +73,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilo visual auténtico y moderno de Global (Paleta oficial: Teal #00778b, Oro Canario #f2a900, Slate #192a3d)
+# Estilo visual corporativo oficial de Global (Teal #00778b, Oro Canario #f2a900, Slate #192a3d)
 st.markdown("""
 <style>
     :root {
@@ -235,17 +248,6 @@ st.markdown("""
         color: #00778b !important;
         font-weight: 700;
     }
-
-    /* Avisos Oficiales Global */
-    .official-notice {
-        background: #fffbeb;
-        border-left: 4px solid #f2a900;
-        padding: 12px 16px;
-        border-radius: 0 8px 8px 0;
-        margin-bottom: 12px;
-        font-size: 0.88rem;
-        color: #78350f;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -296,92 +298,145 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 7 Pestañas que replican fielmente la app de Global en el móvil
+# 7 Pestañas oficiales
 tab_mapa, tab_parada, tab_ruta, tab_tarjeta, tab_tiendas, tab_servicio, tab_lab = st.tabs([
-    "🗺️ Mapa en Vivo",
+    "🗺️ Mapa en Vivo (Google Maps)",
     "🚏 Siguiente Parada",
     "🧭 ¿A dónde quieres ir?",
     "💳 Fares & Cards (Saldo)",
     "🏪 Vendedor de Tickets",
     "⚠️ Estado del Servicio",
-    "🔬 Laboratorio de Datos (TFG ULPGC)",
+    "🔬 Laboratorio & Optimización",
 ])
 
 # ==============================================================================
-# 1. MAPA EN VIVO & FLOTA GPS
+# 1. MAPA EN VIVO CON GOOGLE MAPS
 # ==============================================================================
 with tab_mapa:
-    st.markdown("#### 🗺️ Mapa de la Red Insular & Posicionamiento GPS en Vivo")
-    st.caption("Visualiza las paradas oficiales, las polilíneas de las carreteras principales (GC-1, GC-2 y GC-110 a Tafira) y la ubicación GPS en tiempo real de las guaguas en ruta.")
+    st.markdown("#### 🗺️ Mapa de la Red Insular en Google Maps con Flota GPS en Directo")
+    st.caption("Visualiza las paradas oficiales, el trazado vial de las carreteras principales (GC-1, GC-2 y GC-110) y la ubicación GPS en tiempo real de las guaguas sobre la cartografía oficial de Google Maps.")
 
     fleet_df = get_live_simulated_fleet()
 
-    # Capa 1: Polilíneas viales de carreteras
-    layer_roads = pdk.Layer(
-        "PathLayer",
-        data=HIGHWAY_POLYLINES,
-        get_path="path",
-        get_color="color",
-        width_scale=20,
-        width_min_pixels=3,
-        get_width="width",
-        pickable=True,
+    # Creación del Mapa Google Maps con Folium
+    m_live = folium.Map(
+        location=[27.97, -15.53],
+        zoom_start=10,
+        tiles="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+        attr="Google Maps",
+        name="Google Maps (Carreteras)",
+        control_scale=True,
     )
+    folium.TileLayer(
+        tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+        attr="Google",
+        name="Google Maps (Satélite / Híbrido)",
+    ).add_to(m_live)
+    folium.TileLayer(
+        tiles="https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}",
+        attr="Google",
+        name="Google Maps (Relieve / Terreno)",
+    ).add_to(m_live)
 
-    # Capa 2: Paradas oficiales
-    layer_stops = pdk.Layer(
-        "ScatterplotLayer",
-        data=pd.DataFrame(OFFICIAL_STOPS),
-        get_position=["lon", "lat"],
-        get_radius=1000,
-        get_fill_color=[0, 119, 139, 210],
-        get_line_color=[255, 255, 255, 255],
-        line_width_min_pixels=1.5,
-        pickable=True,
-        auto_highlight=True,
-    )
+    # 1. Trazados viales
+    roads_group = folium.FeatureGroup(name="🛣️ Carreteras Principales (GC-1, GC-2, GC-110)", show=True)
+    for poly in HIGHWAY_POLYLINES:
+        coords_latlon = [[pt[1], pt[0]] for pt in poly["path"]]
+        c_rgb = poly["color"][:3]
+        c_hex = f"#{c_rgb[0]:02x}{c_rgb[1]:02x}{c_rgb[2]:02x}"
+        folium.PolyLine(
+            locations=coords_latlon,
+            color=c_hex,
+            weight=poly.get("width", 5),
+            opacity=0.85,
+            tooltip=poly["name"],
+        ).add_to(roads_group)
+    roads_group.add_to(m_live)
 
-    # Capa 3: Posición GPS de las guaguas
-    layer_buses = pdk.Layer(
-        "ScatterplotLayer",
-        data=fleet_df,
-        get_position=["lon", "lat"],
-        get_radius=1600,
-        get_fill_color=[242, 169, 0, 245],
-        get_line_color=[25, 42, 61, 240],
-        line_width_min_pixels=2,
-        pickable=True,
-        auto_highlight=True,
-    )
+    # 2. Paradas Oficiales
+    stops_group = folium.FeatureGroup(name="🚏 Paradas Oficiales (Marquesinas)", show=True)
+    for s in OFFICIAL_STOPS:
+        popup_html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; width: 220px;">
+            <div style="background: #00778b; color: white; padding: 4px 8px; border-radius: 4px 4px 0 0; font-weight: bold;">
+                Parada #{s['stop_code']}
+            </div>
+            <div style="padding: 8px; border: 1px solid #e2e8f0; border-top: none; background: white;">
+                <b style="color: #192a3d; font-size: 13px;">{s['name']}</b><br/>
+                <span style="color: #64748b;">Zona: {s['zone']} • Altitud: {s['altitude']} m</span><br/>
+                <div style="margin-top: 6px;">
+                    <a href="https://www.google.com/maps/search/?api=1&query={s['lat']},{s['lon']}" target="_blank" style="color: #00778b; font-weight: bold; text-decoration: none;">
+                        📍 Abrir en Google Maps ➔
+                    </a>
+                </div>
+            </div>
+        </div>
+        """
+        folium.CircleMarker(
+            location=[s["lat"], s["lon"]],
+            radius=6,
+            color="#ffffff",
+            weight=2,
+            fill=True,
+            fill_color="#00778b",
+            fill_opacity=0.9,
+            popup=folium.Popup(popup_html, max_width=250),
+            tooltip=f"#{s['stop_code']} {s['name']}",
+        ).add_to(stops_group)
+    stops_group.add_to(m_live)
 
-    layer_bus_labels = pdk.Layer(
-        "TextLayer",
-        data=fleet_df,
-        get_position=["lon", "lat"],
-        get_text="line",
-        get_color=[25, 42, 61, 255],
-        get_size=13,
-        get_alignment_baseline="'center'",
-        get_text_anchor="'middle'",
-        pickable=False,
-    )
+    # 3. Flota GPS de Guaguas
+    fleet_group = folium.FeatureGroup(name="🚌 Flota GPS en Ruta (Global)", show=True)
+    for _, b in fleet_df.iterrows():
+        delay_color = "#dc2626" if b["delay_min"] > 10 else ("#b45309" if b["delay_min"] > 5 else "#047857")
+        badge_bg = "#00778b" if b["line"] in ["30", "50", "91"] else "#f2a900"
+        badge_text = "#ffffff" if b["line"] in ["30", "50", "91"] else "#192a3d"
 
-    deck_live = pdk.Deck(
-        layers=[layer_roads, layer_stops, layer_buses, layer_bus_labels],
-        initial_view_state=pdk.ViewState(
-            latitude=27.97,
-            longitude=-15.53,
-            zoom=9.3,
-            pitch=30,
-            bearing=0,
-        ),
-        map_style="light",
-        tooltip={
-            "html": "<b>{name}</b><br/>{destination}<br/>Línea: <b>{line}</b><br/>Velocidad: {speed_kmh} km/h<br/>Ocupación: {occupancy_pct}%",
-            "style": {"color": "#192a3d", "backgroundColor": "#ffffff", "border": "1px solid #cbd5e1"},
-        },
-    )
-    st.pydeck_chart(deck_live)
+        bus_icon_html = f"""
+        <div style="
+            background: {badge_bg};
+            color: {badge_text};
+            font-weight: 900;
+            font-size: 11px;
+            padding: 3px 7px;
+            border-radius: 6px;
+            border: 2px solid #192a3d;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            white-space: nowrap;
+            display: inline-block;
+            transform: translate(-50%, -50%);
+        ">
+            🚌 {b['line']}
+        </div>
+        """
+        bus_popup = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; width: 230px;">
+            <div style="background: {badge_bg}; color: {badge_text}; padding: 5px 8px; border-radius: 4px 4px 0 0; font-weight: bold; display: flex; justify-content: space-between;">
+                <span>Línea {b['line']}</span>
+                <span style="background: white; color: {delay_color}; padding: 1px 5px; border-radius: 3px; font-size: 10px;">+{b['delay_min']} min</span>
+            </div>
+            <div style="padding: 8px; border: 1px solid #e2e8f0; border-top: none; background: white;">
+                <b>Destino: {b['destination']}</b><br/>
+                <span style="color: #64748b;">Unidad #{b['bus_id']} • Velocidad: {b['speed_kmh']} km/h</span><br/>
+                <span style="color: #64748b;">Ocupación: <b>{b['occupancy_pct']}%</b></span><br/>
+                <div style="margin-top: 6px;">
+                    <a href="https://www.google.com/maps/search/?api=1&query={b['lat']},{b['lon']}" target="_blank" style="color: #00778b; font-weight: bold; text-decoration: none;">
+                        📍 Ver en Google Maps ➔
+                    </a>
+                </div>
+            </div>
+        </div>
+        """
+        folium.Marker(
+            location=[b["lat"], b["lon"]],
+            icon=folium.DivIcon(html=bus_icon_html),
+            popup=folium.Popup(bus_popup, max_width=260),
+            tooltip=f"Línea {b['line']} hacia {b['destination']} (+{b['delay_min']} min)",
+        ).add_to(fleet_group)
+    fleet_group.add_to(m_live)
+
+    folium.LayerControl(position="topright").add_to(m_live)
+    st_folium(m_live, height=520, use_container_width=True)
 
     # Tarjetas de guaguas cercanas
     st.markdown("##### 🚌 Unidades en Ruta con Telemetría GPS Conectada:")
@@ -450,6 +505,11 @@ with tab_parada:
             </div>
             <div style="font-size: 0.85rem; color: #64748b;">
                 Municipio / Zona: <b>{found_stop['zone']}</b> • Altitud: <b>{found_stop['altitude']} m</b>
+            </div>
+            <div style="margin-top: 8px;">
+                <a href="https://www.google.com/maps/search/?api=1&query={found_stop['lat']},{found_stop['lon']}" target="_blank" style="color: #00778b; font-size: 0.82rem; font-weight: bold; text-decoration: none;">
+                    📍 Ver marquesina en Google Maps ➔
+                </a>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -615,37 +675,69 @@ with tab_tarjeta:
         """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. VENDEDOR DE TICKETS (OFICINAS Y PUNTOS OFICIALES DE RECARGA)
+# 5. VENDEDOR DE TICKETS (OFICINAS Y PUNTOS OFICIALES DE RECARGA EN GOOGLE MAPS)
 # ==============================================================================
 with tab_tiendas:
-    st.markdown("#### 🏪 Vendedor de Tickets & Puntos Oficiales de Recarga")
+    st.markdown("#### 🏪 Vendedor de Tickets & Puntos Oficiales de Recarga en Google Maps")
     st.caption("Localiza las estaciones centrales, oficinas de atención al viajero y quioscos autorizados de Global en Gran Canaria.")
 
-    offices_df = pd.DataFrame(TICKET_OFFICES)
-
-    layer_offices = pdk.Layer(
-        "ScatterplotLayer",
-        data=offices_df,
-        get_position=["lon", "lat"],
-        get_radius=1400,
-        get_fill_color=[242, 169, 0, 240],
-        get_line_color=[0, 119, 139, 255],
-        line_width_min_pixels=2.5,
-        pickable=True,
+    m_offices = folium.Map(
+        location=[27.97, -15.53],
+        zoom_start=10,
+        tiles="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+        attr="Google Maps",
+        name="Google Maps (Carreteras)",
     )
+    folium.TileLayer(
+        tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+        attr="Google",
+        name="Google Maps Satélite",
+    ).add_to(m_offices)
 
-    deck_offices = pdk.Deck(
-        layers=[layer_offices],
-        initial_view_state=pdk.ViewState(
-            latitude=27.97,
-            longitude=-15.53,
-            zoom=9.3,
-            pitch=25,
-        ),
-        map_style="light",
-        tooltip={"html": "<b>{name}</b><br/>{address}<br/>Horario: {hours}", "style": {"color": "#192a3d", "backgroundColor": "#ffffff"}},
-    )
-    st.pydeck_chart(deck_offices)
+    for of in TICKET_OFFICES:
+        popup_html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; width: 230px;">
+            <div style="background: #00778b; color: white; padding: 5px 8px; border-radius: 4px 4px 0 0; font-weight: bold;">
+                🏪 {of['name']}
+            </div>
+            <div style="padding: 8px; border: 1px solid #e2e8f0; border-top: none; background: white;">
+                <b>Dirección:</b> {of['address']}<br/>
+                <b>Horario:</b> {of['hours']}<br/>
+                <span style="color: #00778b;"><b>Servicios:</b> {of['services']}</span><br/>
+                <div style="margin-top: 6px;">
+                    <a href="https://www.google.com/maps/search/?api=1&query={of['lat']},{of['lon']}" target="_blank" style="color: #00778b; font-weight: bold; text-decoration: none;">
+                        📍 Cómo llegar en Google Maps ➔
+                    </a>
+                </div>
+            </div>
+        </div>
+        """
+        icon_html = """
+        <div style="
+            background: #00778b;
+            color: #ffffff;
+            font-size: 14px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        ">
+            🎫
+        </div>
+        """
+        folium.Marker(
+            location=[of["lat"], of["lon"]],
+            icon=folium.DivIcon(html=icon_html),
+            popup=folium.Popup(popup_html, max_width=260),
+            tooltip=of["name"],
+        ).add_to(m_offices)
+
+    folium.LayerControl().add_to(m_offices)
+    st_folium(m_offices, height=450, use_container_width=True)
 
     col_of1, col_of2 = st.columns(2)
     for i, of in enumerate(TICKET_OFFICES):
@@ -653,7 +745,12 @@ with tab_tiendas:
         with target_col:
             st.markdown(f"""
             <div class="global-card">
-                <div style="font-weight: 800; color: #00778b; font-size: 1.05rem;">{of['name']}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: 800; color: #00778b; font-size: 1.05rem;">{of['name']}</div>
+                    <a href="https://www.google.com/maps/search/?api=1&query={of['lat']},{of['lon']}" target="_blank" style="color: #f2a900; font-size: 0.82rem; font-weight: bold; text-decoration: none;">
+                        📍 Google Maps
+                    </a>
+                </div>
                 <div style="font-size: 0.85rem; color: #192a3d; margin-top: 4px;">📍 {of['address']}</div>
                 <div style="font-size: 0.82rem; color: #64748b; margin-top: 2px;">⏰ Horario: <b>{of['hours']}</b></div>
                 <div style="font-size: 0.8rem; color: #b45309; margin-top: 6px; background: #fffbeb; padding: 4px 8px; border-radius: 6px;">
@@ -724,70 +821,215 @@ with tab_servicio:
         """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 7. LABORATORIO DE DATOS / MINI-TFG ULPGC
+# 7. LABORATORIO DE DATOS & MÉTODOS DE OPTIMIZACIÓN (TFG ULPGC)
 # ==============================================================================
 with tab_lab:
-    st.markdown("#### 🔬 Laboratorio Analítico de Ciencia de Datos (Mini-TFG ULPGC)")
-    st.caption("Módulo de rigor econométrico, estadística bayesiana y reducción de dimensionalidad con metodología CRISP-DM.")
+    st.markdown("#### 🔬 Laboratorio de Ciencia de Datos & Métodos de Optimización (ULPGC)")
+    st.caption("Alineado con el programa docente de Análisis Exploratorio de Datos (AEDV) y Métodos de Optimización (3º Grado en Ciencia e Ingeniería de Datos).")
 
-    lab_section = st.radio(
-        "Selecciona el módulo de análisis matemático a inspeccionar:",
+    lab_category = st.radio(
+        "Selecciona el área de fundamentación matemática a inspeccionar:",
         [
-            "1. Panel de los 4 Diagnósticos de Gauss-Markov (MCO)",
-            "2. Análisis de Componentes Principales (Biplot PCA de Paradas)",
-            "3. Actualización Bayesiana Dinámica (Prior vs Verosimilitud vs Posterior)",
-            "4. Grafo Causal Acíclico Dirigido (DAG en pgmpy)",
-            "5. Mapa de Calor de Saturación Temporal (Heatmap 2D)",
+            "📊 Bloque 1: Econometría, Inferencia Estadística & Redes Bayesianas",
+            "⚡ Bloque 2: Métodos de Optimización Matemática (Temas 1, 2, 3 y 4)",
         ],
         horizontal=True,
     )
 
-    if "1. Panel de los 4 Diagnósticos" in lab_section:
-        st.markdown("##### Panel Econométrico Clásico de Gauss-Markov")
-        st.caption("Verificación de linealidad, normalidad de residuos y heterocedasticidad del modelo MCO de tiempos de viaje.")
-        fig_quad = plot_gauss_markov_quad(ols_model, df_ops)
-        st.plotly_chart(fig_quad, use_container_width=True)
-        st.markdown(f"""
-        <div class="global-card">
-            <div><b>Ecuación estimada:</b> <code>{ols_bundle.formula}</code></div>
-            <div><b>R² ajustado:</b> <code>{ols_bundle.adj_r_squared:.4f}</code> | <b>F-statistic:</b> <code>{ols_bundle.f_statistic:.1f}</code></div>
-            <div><b>Test Breusch-Pagan:</b> p-valor = 0.0000 (Presencia significativa de heterocedasticidad en horas punta)</div>
-        </div>
-        """, unsafe_allow_html=True)
+    if "Bloque 1" in lab_category:
+        lab_section = st.selectbox(
+            "Módulo Estadístico / Machine Learning:",
+            [
+                "1. Panel de los 4 Diagnósticos de Gauss-Markov (MCO)",
+                "2. Análisis de Componentes Principales (Biplot PCA de Paradas)",
+                "3. Actualización Bayesiana Dinámica (Prior vs Verosimilitud vs Posterior)",
+                "4. Grafo Causal Acíclico Dirigido (DAG en pgmpy)",
+                "5. Mapa de Calor de Saturación Temporal (Heatmap 2D)",
+            ],
+        )
 
-    elif "2. Análisis de Componentes Principales" in lab_section:
-        st.markdown("##### Biplot PCA de la Red Insular de Paradas")
-        st.caption("Proyección bidimensional de la matriz de paradas mostrando la varianza explicada y los vectores de carga (*loadings*).")
-        fig_pca = plot_pca_biplot_stops(stops_df)
-        st.plotly_chart(fig_pca, use_container_width=True)
+        if "1. Panel de los 4 Diagnósticos" in lab_section:
+            st.markdown("##### Panel Econométrico Clásico de Gauss-Markov")
+            st.caption("Verificación de linealidad, normalidad de residuos y heterocedasticidad del modelo MCO de tiempos de viaje.")
+            fig_quad = plot_gauss_markov_quad(ols_model, df_ops)
+            st.plotly_chart(fig_quad, use_container_width=True)
+            st.markdown(f"""
+            <div class="global-card">
+                <div><b>Ecuación estimada:</b> <code>{ols_bundle.formula}</code></div>
+                <div><b>R² ajustado:</b> <code>{ols_bundle.adj_r_squared:.4f}</code> | <b>F-statistic:</b> <code>{ols_bundle.f_statistic:.1f}</code></div>
+                <div><b>Test Breusch-Pagan:</b> p-valor = 0.0000 (Presencia significativa de heterocedasticidad en horas punta)</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    elif "3. Actualización Bayesiana" in lab_section:
-        st.markdown("##### Curvas de Densidad: Prior vs Verosimilitud vs Posterior")
-        st.caption("Modelo conjugado Beta-Binomial para la puntualidad dinámica $\\theta$ con masa de credibilidad del 95% HDI.")
+        elif "2. Análisis de Componentes Principales" in lab_section:
+            st.markdown("##### Biplot PCA de la Red Insular de Paradas")
+            st.caption("Proyección bidimensional de la matriz de paradas mostrando la varianza explicada y los vectores de carga (*loadings*).")
+            fig_pca = plot_pca_biplot_stops(stops_df)
+            st.plotly_chart(fig_pca, use_container_width=True)
 
-        col_by1, col_by2 = st.columns([1, 2])
-        with col_by1:
-            a_prior = st.slider("Parámetro α Prior:", 1.0, 10.0, 2.0, 0.5)
-            b_prior = st.slider("Parámetro β Prior:", 1.0, 10.0, 2.0, 0.5)
-            n_obs = st.slider("Número de viajes observados (n):", 10, 500, 120, 10)
-            k_obs = st.slider("Viajes a tiempo (k):", 0, n_obs, int(n_obs * 0.65), 5)
+        elif "3. Actualización Bayesiana" in lab_section:
+            st.markdown("##### Curvas de Densidad: Prior vs Verosimilitud vs Posterior")
+            st.caption("Modelo conjugado Beta-Binomial para la puntualidad dinámica $\\theta$ con masa de credibilidad del 95% HDI.")
+            col_by1, col_by2 = st.columns([1, 2])
+            with col_by1:
+                a_prior = st.slider("Parámetro α Prior:", 1.0, 10.0, 2.0, 0.5)
+                b_prior = st.slider("Parámetro β Prior:", 1.0, 10.0, 2.0, 0.5)
+                n_obs = st.slider("Número de viajes observados (n):", 10, 500, 120, 10)
+                k_obs = st.slider("Viajes a tiempo (k):", 0, n_obs, int(n_obs * 0.65), 5)
+            with col_by2:
+                fig_bayes = plot_bayesian_update_curve(a_prior, b_prior, k_obs, n_obs)
+                st.plotly_chart(fig_bayes, use_container_width=True)
 
-        with col_by2:
-            fig_bayes = plot_bayesian_update_curve(a_prior, b_prior, k_obs, n_obs)
-            st.plotly_chart(fig_bayes, use_container_width=True)
+        elif "4. Grafo Causal" in lab_section:
+            st.markdown("##### Grafo Acíclico Dirigido (DAG) Causal de Gran Canaria")
+            st.caption("Visualización de las aristas dirigidas y probabilidades condicionales calculadas con `pgmpy`.")
+            evidence_active = {
+                "Incidente_GC1": "Si" if st.session_state.get("gc1_incident_active", False) else "No",
+                "Congestion_SanTelmo": "Alta",
+            }
+            fig_dag = plot_causal_dag_visual(bayes_net, evidence=evidence_active)
+            st.plotly_chart(fig_dag, use_container_width=True)
 
-    elif "4. Grafo Causal" in lab_section:
-        st.markdown("##### Grafo Acíclico Dirigido (DAG) Causal de Gran Canaria")
-        st.caption("Visualización de las aristas dirigidas y probabilidades condicionales calculadas con `pgmpy`.")
-        evidence_active = {
-            "Incidente_GC1": "Si" if st.session_state.get("gc1_incident_active", False) else "No",
-            "Congestion_SanTelmo": "Alta",
-        }
-        fig_dag = plot_causal_dag_visual(bayes_net, evidence=evidence_active)
-        st.plotly_chart(fig_dag, use_container_width=True)
+        elif "5. Mapa de Calor" in lab_section:
+            st.markdown("##### Matriz de Calor Temporal de Retrasos")
+            st.caption("Patrón de demoras medias a lo largo de las 24 horas y los 7 días de la semana.")
+            fig_heat = plot_delay_heatmap(df_ops)
+            st.plotly_chart(fig_heat, use_container_width=True)
 
-    elif "5. Mapa de Calor" in lab_section:
-        st.markdown("##### Matriz de Calor Temporal de Retrasos")
-        st.caption("Patrón de demoras medias a lo largo de las 24 horas y los 7 días de la semana.")
-        fig_heat = plot_delay_heatmap(df_ops)
-        st.plotly_chart(fig_heat, use_container_width=True)
+    else:
+        # ==============================================================================
+        # BLOQUE 2: MÉTODOS DE OPTIMIZACIÓN (TEMAS 1, 2, 3 Y 4)
+        # ==============================================================================
+        opt_section = st.selectbox(
+            "Capítulo de Optimización:",
+            [
+                "⚡ Tema 1 & 3: Programación Lineal y Entera Mixta (MILP / Método Simplex)",
+                "📈 Tema 2: Optimización Sin Restricciones (Descenso por Gradiente vs Newton con Hessiano)",
+                "⚖️ Tema 3.2: Multiplicadores de Lagrange (Asignación Óptima de Frecuencias)",
+                "🧬 Tema 4: Métodos Heurísticos (Simulated Annealing vs Algoritmo Genético)",
+            ],
+        )
+
+        if "Tema 1 & 3" in opt_section:
+            st.markdown("##### Asignación Óptima de Flota en Horas Punta (MILP / Simplex)")
+            st.caption("Minimiza costes operativos y penalizaciones por pasajeros en tierra mediante Programación Lineal Entera Mixta (MILP con solver HiGHS).")
+
+            col_milp1, col_milp2 = st.columns([1, 1.4], gap="large")
+            with col_milp1:
+                buses_disp = st.slider("Total de guaguas disponibles en retén:", 40, 110, 75, 5)
+                driver_hours = st.slider("Horas máximas de conducción disponibles:", 30.0, 90.0, 58.0, 2.0)
+                run_milp = st.button("⚡ Resolver con HiGHS / Simplex Dual")
+
+            res_milp = solve_fleet_dispatch_milp(total_available_buses=buses_disp, max_driver_hours=driver_hours)
+
+            with col_milp2:
+                st.markdown(f"""
+                <div class="global-card">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 800; color: #00778b;">Estado del Solver: <b>{res_milp.status}</b></span>
+                        <span class="pill pill-green">HiGHS MILP</span>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 900; color: #192a3d; margin: 6px 0;">
+                        Coste Óptimo Total: {res_milp.total_cost_eur:,.2f} €
+                    </div>
+                    <div style="font-size: 0.85rem; color: #64748b;">
+                        Guaguas asignadas: <b>{res_milp.total_buses_dispatched} / {buses_disp}</b> • Cobertura: <b>{res_milp.coverage_ratio*100:.1f}%</b>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.8rem; background: #e6f6f8; padding: 6px 10px; border-radius: 6px; color: #00778b;">
+                        <b>Precios Sombra Duales:</b> 1 guagua adicional ahorra <b>{res_milp.shadow_prices.get('Precio_Sombra_Flota_EUR_Guagua', 0.0):.2f} €</b> en penalizaciones.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            fig_milp = plot_milp_dispatch_bars(res_milp.passengers_served, res_milp.passengers_unmet, res_milp.corridor_dispatches)
+            st.plotly_chart(fig_milp, use_container_width=True)
+
+        elif "Tema 2" in opt_section:
+            st.markdown("##### Optimización Sin Restricciones: Descenso por Gradiente vs Newton")
+            st.caption("Calibración de la función de coste de congestión vial BPR: $T(d, v/c) = T_0 + \\theta_1 d + \\theta_2 (v/c)^4$ comparando convergencia lineal vs cuadrática con matriz Hessiana $H(\\theta)$.")
+
+            col_gd1, col_gd2 = st.columns([1, 1.4], gap="large")
+            with col_gd1:
+                lr = st.select_slider("Tasa de aprendizaje (η) para Gradiente:", [0.0001, 0.0003, 0.0005, 0.001], value=0.0005)
+                max_iter_gd = st.slider("Iteraciones Descenso por Gradiente:", 20, 200, 100, 10)
+                max_iter_newton = st.slider("Iteraciones Método de Newton:", 3, 20, 8, 1)
+
+            res_gd = optimize_bpr_gradient_descent(learning_rate=lr, max_iters=max_iter_gd)
+            res_newton = optimize_bpr_newton(max_iters=max_iter_newton)
+
+            with col_gd2:
+                st.markdown(f"""
+                <div class="global-card">
+                    <div style="font-weight: 800; color: #00778b;">Comparativa de Velocidad de Convergencia:</div>
+                    <div style="margin-top: 6px; font-size: 0.85rem;">
+                        <b>Descenso por Gradiente:</b> {res_gd.iterations} iters • Pérdida final: <code>{res_gd.final_loss:.4f}</code> (Tasa {res_gd.convergence_rate})<br/>
+                        <b>Método de Newton:</b> {res_newton.iterations} iters • Pérdida final: <code>{res_newton.final_loss:.4f}</code> (Tasa {res_newton.convergence_rate})
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.82rem; color: #047857; background: #ecfdf5; padding: 6px 10px; border-radius: 6px;">
+                        🎯 <b>Resultado:</b> El método de Newton converge en apenas <b>{res_newton.iterations} iteraciones</b> gracias a la curvatura de la matriz Hessiana analítica.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            fig_conv = plot_unconstrained_convergence(res_gd.loss_history, res_newton.loss_history)
+            st.plotly_chart(fig_conv, use_container_width=True)
+
+        elif "Tema 3.2" in opt_section:
+            st.markdown("##### Multiplicadores de Lagrange: Reparto Óptimo de Frecuencias")
+            st.caption("Maximiza la utilidad social $\\sum w_i \\ln(f_i)$ sujeta a la restricción presupuestaria de kilómetros $\\sum k_i f_i = B$.")
+
+            budget_in = st.slider("Presupuesto insular total de kilómetros (B):", 400.0, 1200.0, 680.0, 40.0)
+            res_lagrange = solve_lagrangian_frequency_allocation(total_budget_km=budget_in)
+
+            st.markdown(f"""
+            <div class="global-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #00778b;">Multiplicador de Lagrange: λ* = {res_lagrange.lambda_multiplier:.4f}</div>
+                    <span class="pill pill-teal">Gradiente Lagrangiano: ||∇L|| ≈ {res_lagrange.lagrangian_gradient_norm:.1e}</span>
+                </div>
+                <div style="font-size: 0.88rem; color: #192a3d; margin-top: 6px;">
+                    {res_lagrange.interpretation_lambda}
+                </div>
+                <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">
+                    Presupuesto gastado: <b>{res_lagrange.budget_used:.1f} km / {res_lagrange.budget_total:.1f} km</b> (Restricción activa al 100%)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("###### Frecuencias asignadas analíticamente $f_i^* = \\frac{w_i}{\\lambda^* k_i}$:")
+            f_cols = st.columns(len(res_lagrange.optimal_frequencies))
+            for i, (l_name, f_val) in enumerate(res_lagrange.optimal_frequencies.items()):
+                with f_cols[i]:
+                    st.metric(l_name.split(" (")[0], f"{f_val:.2f} exp/h")
+
+        elif "Tema 4" in opt_section:
+            st.markdown("##### Metaheurísticas: Simulated Annealing vs Algoritmo Genético")
+            st.caption("Optimización del circuito de inspección y recogida en paradas clave de Gran Canaria (Problema del Viajante de Comercio / TSP insular).")
+
+            col_h1, col_h2 = st.columns([1, 1.4], gap="large")
+            with col_h1:
+                t0_sa = st.slider("Temperatura inicial (T₀):", 200.0, 1000.0, 500.0, 50.0)
+                cool_sa = st.slider("Factor de enfriamiento (α):", 0.90, 0.99, 0.97, 0.01)
+                gen_ga = st.slider("Generaciones Algoritmo Genético:", 30, 120, 70, 10)
+
+            res_sa = solve_tsp_simulated_annealing(initial_temp=t0_sa, cooling_rate=cool_sa)
+            res_ga = solve_tsp_genetic_algorithm(generations=gen_ga)
+
+            with col_h2:
+                st.markdown(f"""
+                <div class="global-card">
+                    <div style="font-weight: 800; color: #00778b;">Resultados de Optimización Heurística de Ruta:</div>
+                    <div style="font-size: 0.85rem; margin-top: 6px;">
+                        <b>Circuito Inicial:</b> {res_sa.initial_distance_km:.1f} km<br/>
+                        <b>Ruta Recocido Simulado:</b> <b style="color: #00778b;">{res_sa.best_distance_km:.1f} km</b> (Mejora: {res_sa.improvement_pct:.1f}%)<br/>
+                        <b>Ruta Algoritmo Genético:</b> <b style="color: #047857;">{res_ga.best_distance_km:.1f} km</b> (Mejora: {res_ga.improvement_pct:.1f}%)
+                    </div>
+                    <div style="font-size: 0.82rem; color: #64748b; margin-top: 6px;">
+                        <b>Secuencia óptima encontrada:</b><br/>
+                        {" ➔ ".join(res_sa.best_route_names[:5])} ➔ ... ➔ {res_sa.best_route_names[0]}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            fig_heur = plot_heuristic_convergence(res_sa.cost_history, res_ga.cost_history)
+            st.plotly_chart(fig_heur, use_container_width=True)

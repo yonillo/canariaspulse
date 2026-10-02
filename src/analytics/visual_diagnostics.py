@@ -400,3 +400,108 @@ def plot_causal_dag_visual(bayes_net, evidence: Optional[Dict[str, str]] = None)
         margin=dict(l=20, r=20, t=40, b=20)
     )
     return fig
+
+
+def plot_milp_dispatch_bars(served: Dict[str, int], unmet: Dict[str, int], dispatches: Dict[str, int]) -> go.Figure:
+    """Genera gráfico de barras agrupadas comparando pasajeros atendidos vs desatendidos por corredor."""
+    corridors = [c.split(" (")[0] for c in served.keys()]
+    served_vals = list(served.values())
+    unmet_vals = list(unmet.values())
+    buses_vals = list(dispatches.values())
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=corridors,
+        y=served_vals,
+        name='Pasajeros Atendidos (65 pax/bus)',
+        marker_color='#00778b',
+        text=served_vals,
+        textposition='auto',
+    ))
+    fig.add_trace(go.Bar(
+        x=corridors,
+        y=unmet_vals,
+        name='Demanda Desatendida (Holgura s_i)',
+        marker_color='#dc2626',
+        text=unmet_vals,
+        textposition='auto',
+    ))
+    fig.update_layout(
+        barmode='stack',
+        title="Asignación Óptima de Capacidad y Demanda por Corredor (MILP / Simplex)",
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#f8fafc',
+        font=dict(color='#192a3d', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+        height=380,
+        xaxis=dict(gridcolor="#e2e8f0"),
+        yaxis=dict(title="Número de Pasajeros", gridcolor="#e2e8f0"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    return fig
+
+
+def plot_unconstrained_convergence(gd_losses: List[float], newton_losses: List[float]) -> go.Figure:
+    """Compara las curvas de convergencia entre Descenso por Gradiente (lineal) y Newton (cuadrática)."""
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=list(range(len(gd_losses))),
+        y=gd_losses,
+        mode='lines+markers',
+        name='Descenso por Gradiente (Lineal)',
+        line=dict(color='#f2a900', width=2.5),
+        marker=dict(size=4)
+    ))
+    fig.add_trace(go.Scatter(
+        x=list(range(len(newton_losses))),
+        y=newton_losses,
+        mode='lines+markers',
+        name='Método de Newton 2º Orden (Cuadrática)',
+        line=dict(color='#00778b', width=3),
+        marker=dict(size=7)
+    ))
+    fig.update_layout(
+        title="Convergencia en Calibración de Función BPR: Gradiente vs Newton con Hessiano",
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#f8fafc',
+        font=dict(color='#192a3d', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+        height=380,
+        xaxis=dict(title="Iteraciones (k)", gridcolor="#e2e8f0"),
+        yaxis=dict(title="Pérdida MSE (Escala Logarítmica)", type="log", gridcolor="#e2e8f0"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    return fig
+
+
+def plot_heuristic_convergence(sa_history: List[float], ga_history: List[float]) -> go.Figure:
+    """Compara la evolución del coste de ruta entre Simulated Annealing y Algoritmo Genético."""
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=list(range(len(sa_history))),
+        y=sa_history,
+        mode='lines',
+        name='Simulated Annealing (Metropolis 2-opt)',
+        line=dict(color='#00778b', width=2)
+    ))
+    fig.add_trace(go.Scatter(
+        x=np.linspace(0, len(sa_history), len(ga_history)),
+        y=ga_history,
+        mode='lines+markers',
+        name='Algoritmo Genético (Cruce OX + Elitismo)',
+        line=dict(color='#059669', width=2.5),
+        marker=dict(size=4)
+    ))
+    fig.update_layout(
+        title="Optimización de Rutas Insulares (TSP): Simulated Annealing vs Algoritmo Genético",
+        paper_bgcolor='#ffffff',
+        plot_bgcolor='#f8fafc',
+        font=dict(color='#192a3d', family='-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'),
+        height=380,
+        xaxis=dict(title="Progreso de Búsqueda", gridcolor="#e2e8f0"),
+        yaxis=dict(title="Distancia Total del Circuito (km)", gridcolor="#e2e8f0"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    return fig
+

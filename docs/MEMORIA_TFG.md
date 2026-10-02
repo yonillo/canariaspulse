@@ -202,6 +202,21 @@ La inferencia exacta por Eliminación de Variables arrojó los siguientes saltos
 * $P(\text{Retraso L30 Sur} \mid \text{Sin Incidente}) = 30.4\% \implies P(\text{Retraso L30 Sur} \mid \text{Accidente GC-1}) = \mathbf{71.8\%}$
 * $P(\text{Pérdida Vuelo LPA} \mid \text{Sin Incidente}) = 6.0\% \implies P(\text{Pérdida Vuelo LPA} \mid \text{Accidente GC-1}) = \mathbf{48.4\%}$
 
+### H. Métodos de Optimización Matemática (Temas 1, 2, 3 y 4 del Grado)
+Se formalizan y resuelven cuatro problemas operativos capitales en la gestión de transporte insular:
+1. **Temas 1 y 3 (Programación Lineal y Entera Mixta - MILP con Solver HiGHS / Simplex)**:
+   $$\min_{\mathbf{x}, \mathbf{s}} \sum_{i=1}^M c_i x_i + \sum_{i=1}^M p_i s_i \quad \text{s.a.} \quad \begin{cases} 65 x_i + s_i \ge D_i & \forall i \\ \sum_{i=1}^M x_i \le B_{\text{flota}} \\ \sum_{i=1}^M \tau_i x_i \le H_{\text{conductores}} \\ x_i \in \mathbb{Z}_{\ge 0}, \quad s_i \ge 0 \end{cases}$$
+   Donde $x_i$ son expediciones de guaguas asignadas, $s_i$ es demanda desatendida y $\lambda^*$ son precios sombra duales que cuantifican el ahorro marginal por incorporar una unidad adicional a la flota.
+2. **Tema 2 (Optimización Sin Restricciones: Gradiente vs Newton con Hessiano)**:
+   Calibración de la función de retraso BPR mediante gradiente analítico $\nabla f(\boldsymbol{\theta})$ y matriz Hessiana exacta $\mathbf{H}(\boldsymbol{\theta})$:
+   $$\boldsymbol{\theta}^{(k+1)} = \boldsymbol{\theta}^{(k)} - \mathbf{H}^{-1} \nabla f(\boldsymbol{\theta}^{(k)})$$
+   Demostrando convergencia cuadrática en $k < 10$ iteraciones frente a la convergencia lineal del descenso por gradiente.
+3. **Tema 3.2 (Multiplicadores de Lagrange)**:
+   Asignación analítica de frecuencias de servicio $f_i^*$ maximizando la utilidad social logarítmica bajo restricción estricta de combustible $\sum k_i f_i = B$:
+   $$\mathcal{L}(\mathbf{f}, \lambda) = \sum_{i=1}^M \omega_i \ln(f_i) - \lambda \left(\sum_{i=1}^M k_i f_i - B\right) \implies f_i^* = \frac{\omega_i}{\sum_j \omega_j} \cdot \frac{B}{k_i}, \quad \lambda^* = \frac{\sum_i \omega_i}{B}$$
+4. **Tema 4 (Metaheurísticas: Simulated Annealing y Algoritmo Genético)**:
+   Resolución del circuito cerrado de refuerzo e inspección (TSP insular de 10 hubs estratégicos) mediante recocido simulado (criterio de Metropolis $P = e^{-\Delta E / T}$ con vecindad 2-opt) y algoritmo genético (Order Crossover OX y mutación swap), reduciendo la distancia total del circuito en más de un 25%.
+
 ---
 
 ## 3.6. Evaluación y Validación
