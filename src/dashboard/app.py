@@ -27,17 +27,66 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import importlib
 
-from src.analytics.visual_diagnostics import (
-    plot_bayesian_update_curve,
-    plot_causal_dag_visual,
-    plot_delay_heatmap,
-    plot_gauss_markov_quad,
-    plot_heuristic_convergence,
-    plot_milp_dispatch_bars,
-    plot_pca_biplot_stops,
-    plot_unconstrained_convergence,
-)
+# Forzar recarga de submódulos en servidores Streamlit con sesiones previas en memoria
+for mod_name in ["src.analytics.visual_diagnostics", "src.analytics", "src.optimization"]:
+    if mod_name in sys.modules:
+        try:
+            importlib.reload(sys.modules[mod_name])
+        except Exception:
+            pass
+
+try:
+    from src.analytics.visual_diagnostics import (
+        plot_bayesian_update_curve,
+        plot_causal_dag_visual,
+        plot_delay_heatmap,
+        plot_gauss_markov_quad,
+        plot_heuristic_convergence,
+        plot_milp_dispatch_bars,
+        plot_pca_biplot_stops,
+        plot_unconstrained_convergence,
+    )
+except ImportError:
+    import src.analytics.visual_diagnostics as vd
+    vd = importlib.reload(vd)
+    plot_bayesian_update_curve = vd.plot_bayesian_update_curve
+    plot_causal_dag_visual = vd.plot_causal_dag_visual
+    plot_delay_heatmap = vd.plot_delay_heatmap
+    plot_gauss_markov_quad = vd.plot_gauss_markov_quad
+    plot_pca_biplot_stops = vd.plot_pca_biplot_stops
+    plot_milp_dispatch_bars = getattr(vd, "plot_milp_dispatch_bars", None)
+    plot_unconstrained_convergence = getattr(vd, "plot_unconstrained_convergence", None)
+    plot_heuristic_convergence = getattr(vd, "plot_heuristic_convergence", None)
+
+if plot_heuristic_convergence is None:
+    def plot_heuristic_convergence(sa_history: list, ga_history: list) -> go.Figure:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=list(range(len(sa_history))), y=sa_history, mode='lines', name='Simulated Annealing (Metropolis 2-opt)', line=dict(color='#00778b', width=2)))
+        fig.add_trace(go.Scatter(x=np.linspace(0, len(sa_history), len(ga_history)), y=ga_history, mode='lines+markers', name='Algoritmo Genético (OX + Elitismo)', line=dict(color='#059669', width=2.5), marker=dict(size=4)))
+        fig.update_layout(title="Optimización de Rutas Insulares (TSP): Simulated Annealing vs Algoritmo Genético", paper_bgcolor='#ffffff', plot_bgcolor='#f8fafc', font=dict(color='#192a3d'), height=380, xaxis=dict(title="Progreso de Búsqueda", gridcolor="#e2e8f0"), yaxis=dict(title="Distancia Total (km)", gridcolor="#e2e8f0"), margin=dict(l=20, r=20, t=40, b=20))
+        return fig
+
+if plot_unconstrained_convergence is None:
+    def plot_unconstrained_convergence(gd_losses: list, newton_losses: list) -> go.Figure:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=list(range(len(gd_losses))), y=gd_losses, mode='lines+markers', name='Descenso por Gradiente (Lineal)', line=dict(color='#f2a900', width=2.5), marker=dict(size=4)))
+        fig.add_trace(go.Scatter(x=list(range(len(newton_losses))), y=newton_losses, mode='lines+markers', name='Método de Newton 2º Orden (Cuadrática)', line=dict(color='#00778b', width=3), marker=dict(size=7)))
+        fig.update_layout(title="Convergencia en Calibración de Función BPR: Gradiente vs Newton con Hessiano", paper_bgcolor='#ffffff', plot_bgcolor='#f8fafc', font=dict(color='#192a3d'), height=380, xaxis=dict(title="Iteraciones (k)", gridcolor="#e2e8f0"), yaxis=dict(title="Pérdida MSE (Escala Logarítmica)", type="log", gridcolor="#e2e8f0"), margin=dict(l=20, r=20, t=40, b=20))
+        return fig
+
+if plot_milp_dispatch_bars is None:
+    def plot_milp_dispatch_bars(served: dict, unmet: dict, dispatches: dict) -> go.Figure:
+        corridors = [c.split(" (")[0] for c in served.keys()]
+        served_vals = list(served.values())
+        unmet_vals = list(unmet.values())
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=corridors, y=served_vals, name='Pasajeros Atendidos (65 pax/bus)', marker_color='#00778b', text=served_vals, textposition='auto'))
+        fig.add_trace(go.Bar(x=corridors, y=unmet_vals, name='Demanda Desatendida (Holgura s_i)', marker_color='#dc2626', text=unmet_vals, textposition='auto'))
+        fig.update_layout(barmode='stack', title="Asignación Óptima de Capacidad y Demanda por Corredor (MILP / Simplex)", paper_bgcolor='#ffffff', plot_bgcolor='#f8fafc', font=dict(color='#192a3d'), height=380, xaxis=dict(gridcolor="#e2e8f0"), yaxis=dict(title="Número de Pasajeros", gridcolor="#e2e8f0"), margin=dict(l=20, r=20, t=40, b=20))
+        return fig
+
 from src.bayesian.bayesian_network import GranCanariaBayesianNetwork
 from src.bayesian.bayesian_regression import BayesianLinearRegressor
 from src.bayesian.clustering_gmm import fit_gmm_stop_clustering
