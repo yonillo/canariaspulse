@@ -1,19 +1,20 @@
 """GLOBAL Gran Canaria Móvil 2.0: Sistema Inteligente de Transporte Interurbano.
 
-Réplica exacta, moderna y fiel a la identidad corporativa oficial de Global (Salcai Utinsa S.A.):
-1. 🗺️ Mapa en Vivo con Google Maps (Capas Oficiales de Google, Trazados Viales GC-1/GC-2/GC-110 y Flota GPS).
-2. 🚏 Siguiente Parada (Búsqueda por código oficial de 4 dígitos de la marquesina).
-3. 🧭 ¿A dónde quieres ir? (Calculadora de trayectos con Garantía de Llegada Bayesiana 95%).
-4. 💳 Fares & Cards / Saldo de Tarjeta (Bono Residente Canario, Wawa Joven, TransGC, regla 15 viajes).
-5. 🏪 Vendedor de Tickets (Puntos oficiales de recarga y oficinas insulares con Google Maps).
-6. ⚠️ Estado del Servicio & Radar de Carreteras (Inferencia causal en tiempo real con pgmpy).
-7. 🔬 Laboratorio de Datos & Métodos de Optimización (Temas 1, 2, 3 y 4 de Optimización ULPGC + AEDV).
+Lavado de cara integral de la app oficial de Global (Salcai Utinsa S.A.):
+1. 🗺️ Explorador en Vivo (Google Maps nativo, capas viales GC-1/GC-2/GC-110 y flota GPS en directo).
+2. 🚏 Panel en Parada (Marquesina digital LED, afluencia Poisson y cuenta atrás en tiempo real).
+3. 🧭 Planificador de Ruta (Garantía de Llegada Bayesiana 95% para exámenes ULPGC o vuelos LPA).
+4. 💳 Mi Tarjeta Virtual (Simulador Wawa Joven/Bono Residente, regla 15 viajes y ahorro en €).
+5. 🏪 Puntos de Venta (Oficinas oficiales y quioscos de recarga en Google Maps).
+6. ⚠️ Radar de Tráfico (Inferencia Causal con pgmpy sobre colapsos en la GC-1).
+7. 🔬 Laboratorio & Métodos de Optimización (Temas 1, 2, 3 y 4 de Optimización ULPGC + AEDV).
 """
 
 from __future__ import annotations
 
 import sys
-from datetime import datetime, time
+import importlib
+from datetime import datetime, time, timedelta
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -27,10 +28,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import importlib
 
-# Forzar recarga de submódulos en servidores Streamlit con sesiones previas en memoria
-for mod_name in ["src.analytics.visual_diagnostics", "src.analytics", "src.optimization"]:
+# Forzar recarga de submódulos en sesiones previas de Streamlit
+for mod_name in ["src.analytics.visual_diagnostics", "src.analytics", "src.optimization", "src.passenger_services"]:
     if mod_name in sys.modules:
         try:
             importlib.reload(sys.modules[mod_name])
@@ -100,13 +100,12 @@ from src.data_ingestion.network_data import (
     search_stop_by_code,
 )
 from src.optimization import (
-    OptimizationTrajectory,
+    solve_fleet_dispatch_milp,
     optimize_bpr_gradient_descent,
     optimize_bpr_newton,
-    solve_fleet_dispatch_milp,
     solve_lagrangian_frequency_allocation,
-    solve_tsp_genetic_algorithm,
     solve_tsp_simulated_annealing,
+    solve_tsp_genetic_algorithm,
 )
 from src.passenger_services import (
     calculate_free_transit_progress,
@@ -116,20 +115,23 @@ from src.passenger_services import (
 
 # Configuración de página
 st.set_page_config(
-    page_title="GLOBAL Gran Canaria Móvil 2.0",
+    page_title="GLOBAL Móvil 2.0 | Gran Canaria Smart Transit",
     page_icon="🚌",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# Estilo visual corporativo oficial de Global (Teal #00778b, Oro Canario #f2a900, Slate #192a3d)
+# Estilo visual de alta gama: Modern Mobile Transit App UI
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
     :root {
         --global-teal: #00778b;
         --global-teal-dark: #005d6d;
         --global-teal-light: #e6f6f8;
         --global-gold: #f2a900;
+        --global-gold-dark: #d97706;
         --global-slate: #192a3d;
         --global-text: #1e293b;
         --global-muted: #64748b;
@@ -139,105 +141,223 @@ st.markdown("""
     }
 
     .stApp {
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
         color: #192a3d;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
-    /* Header Institucional Global */
-    .global-header {
-        background: linear-gradient(135deg, #005d6d 0%, #00778b 55%, #008da5 100%);
+    /* Barra Superior Tipo App Móvil */
+    .app-topbar {
+        background: linear-gradient(135deg, #005d6d 0%, #00778b 60%, #008da5 100%);
         border-bottom: 4px solid #f2a900;
-        border-radius: 14px;
-        padding: 18px 24px;
-        margin-bottom: 18px;
+        border-radius: 16px;
+        padding: 16px 22px;
+        margin-bottom: 16px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 0 4px 14px rgba(0, 119, 139, 0.15);
+        box-shadow: 0 6px 18px rgba(0, 119, 139, 0.18);
         color: #ffffff;
     }
-    .global-brand {
+    .brand-title {
         display: flex;
         align-items: center;
         gap: 12px;
-        font-size: 1.7rem;
-        font-weight: 800;
+        font-size: 1.6rem;
+        font-weight: 900;
         letter-spacing: -0.5px;
     }
-    .brand-badge {
+    .brand-pill {
         background: #f2a900;
         color: #192a3d;
         padding: 3px 12px;
         border-radius: 6px;
         font-weight: 900;
-        font-size: 1.4rem;
-        letter-spacing: 0.5px;
+        font-size: 1.3rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     }
-    .header-subtext {
+    .topbar-subtitle {
         color: #d1f4fa;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 500;
-        margin-top: 3px;
+        margin-top: 2px;
     }
-    .header-badges {
+    .status-capsules {
         display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
     }
-    .header-pill {
-        background: rgba(255, 255, 255, 0.18);
+    .capsule {
+        background: rgba(255, 255, 255, 0.16);
         color: #ffffff;
-        padding: 4px 12px;
+        padding: 5px 12px;
         border-radius: 20px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 600;
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.22);
     }
 
-    /* Tarjetas de Información */
-    .global-card {
+    /* Pestañas estilizadas como barra de navegación de App */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #ffffff;
+        padding: 8px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        padding: 10px 18px;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.15s ease;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #00778b !important;
+        color: #ffffff !important;
+        font-weight: 700;
+        box-shadow: 0 3px 10px rgba(0, 119, 139, 0.25);
+    }
+
+    /* Tarjetas Interactivas de Transporte */
+    .transit-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 16px 20px;
         margin-bottom: 12px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         transition: all 0.18s ease;
     }
-    .global-card:hover {
+    .transit-card:hover {
         border-color: #00778b;
-        box-shadow: 0 6px 14px rgba(0, 119, 139, 0.08);
-        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(0, 119, 139, 0.10);
+        transform: translateY(-2px);
     }
 
-    /* Badges de Líneas de Guaguas */
-    .line-badge {
+    /* Badges de Líneas */
+    .route-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         background: #f2a900;
         color: #192a3d;
-        font-size: 1.25rem;
+        font-size: 1.3rem;
         font-weight: 900;
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(242, 169, 0, 0.35);
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        box-shadow: 0 3px 6px rgba(242, 169, 0, 0.35);
     }
-    .line-badge-express {
+    .route-badge-express {
         background: #00778b;
         color: #ffffff;
-        box-shadow: 0 2px 4px rgba(0, 119, 139, 0.35);
+        box-shadow: 0 3px 6px rgba(0, 119, 139, 0.35);
     }
 
-    /* Pastillas de Estado */
+    /* Pantalla LED de Marquesina */
+    .led-marquesina-screen {
+        background: #0d1b2a;
+        border: 3px solid #1b263b;
+        border-radius: 16px;
+        padding: 20px;
+        color: #f8fafc;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.8), 0 8px 24px rgba(0,0,0,0.25);
+        font-family: 'Inter', monospace;
+    }
+    .led-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #1e3a5f;
+        padding-bottom: 10px;
+        margin-bottom: 16px;
+    }
+    .led-stop-name {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #fbbf24;
+        letter-spacing: 0.5px;
+    }
+    .led-time {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #38bdf8;
+    }
+    .led-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+    }
+    .led-arrival-min {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #34d399;
+    }
+
+    /* Tarjeta Virtual Wawa Joven / Bono Residente */
+    .smartcard-3d {
+        background: linear-gradient(135deg, #00778b 0%, #004d5a 50%, #00363f 100%);
+        border: 2px solid #f2a900;
+        border-radius: 18px;
+        padding: 24px;
+        color: #ffffff;
+        box-shadow: 0 12px 28px rgba(0, 77, 90, 0.35);
+        position: relative;
+        overflow: hidden;
+    }
+    .smartcard-chip-gold {
+        width: 44px;
+        height: 32px;
+        background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+        border-radius: 6px;
+        display: inline-block;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+    }
+
+    /* Timeline de Itinerario */
+    .timeline-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        margin-bottom: 12px;
+        position: relative;
+    }
+    .step-time {
+        font-weight: 800;
+        color: #00778b;
+        font-size: 0.95rem;
+        min-width: 45px;
+    }
+    .step-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #00778b;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 0 2px #00778b;
+        margin-top: 4px;
+    }
+    .step-content {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        flex: 1;
+    }
+
+    /* Pastillas */
     .pill {
         display: inline-block;
-        padding: 3px 9px;
+        padding: 3px 10px;
         border-radius: 14px;
         font-size: 0.75rem;
         font-weight: 700;
@@ -246,57 +366,6 @@ st.markdown("""
     .pill-amber { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
     .pill-red { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
     .pill-teal { background: #e6f6f8; color: #00778b; border: 1px solid #b2e4ec; }
-
-    /* Tarjeta Virtual Wawa Joven / Bono Residente */
-    .canary-transit-card {
-        background: linear-gradient(135deg, #00778b 0%, #004d5a 100%);
-        border: 2px solid #f2a900;
-        border-radius: 16px;
-        padding: 22px;
-        color: #ffffff;
-        box-shadow: 0 8px 20px rgba(0, 93, 109, 0.22);
-        position: relative;
-        overflow: hidden;
-    }
-    .canary-transit-card::after {
-        content: "AUTGC";
-        position: absolute;
-        right: 15px;
-        bottom: 5px;
-        font-size: 3.5rem;
-        font-weight: 900;
-        color: rgba(255, 255, 255, 0.05);
-        pointer-events: none;
-    }
-    .smartcard-chip {
-        width: 38px;
-        height: 28px;
-        background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-        border-radius: 6px;
-        display: inline-block;
-        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
-    }
-
-    /* Pestañas de Streamlit estilizadas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        background-color: #ffffff;
-        padding: 6px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
-        padding: 8px 16px;
-        color: #64748b;
-        font-weight: 600;
-        font-size: 0.88rem;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #e6f6f8 !important;
-        color: #00778b !important;
-        font-weight: 700;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -328,42 +397,56 @@ def load_app_models(df_ops: pd.DataFrame, stops_df: pd.DataFrame):
 df_ops, stops_df, routes_df = load_app_data()
 bayes_reg, bayes_net, clustered_stops, gmm_profiles, ols_bundle, ols_model = load_app_models(df_ops, stops_df)
 
-# Header Institucional de Global
+# Barra Superior de la Aplicación Móvil
 st.markdown("""
-<div class="global-header">
+<div class="app-topbar">
     <div>
-        <div class="global-brand">
-            <span class="brand-badge">GLOBAL</span>
+        <div class="brand-title">
+            <span class="brand-pill">GLOBAL</span>
             Gran Canaria Móvil 2.0
         </div>
-        <div class="header-subtext">
-            Salcai Utinsa S.A. • Red Oficial de Transporte Interurbano de Gran Canaria • AUTGC
+        <div class="topbar-subtitle">
+            Salcai Utinsa S.A. • Red Oficial de Transporte Interurbano • Autoridad Única del Transporte (AUTGC)
         </div>
     </div>
-    <div class="header-badges">
-        <span class="header-pill">🟢 Flota GPS Conectada: 412 Guaguas</span>
-        <span class="header-pill" style="background: rgba(242, 169, 0, 0.25); border-color: #f2a900; color: #fff;">📞 Atención: 928 25 26 30</span>
+    <div class="status-capsules">
+        <span class="capsule" style="background: rgba(34, 197, 94, 0.2); border-color: #22c55e;">🟢 GPS Flota Activo (412 Guaguas)</span>
+        <span class="capsule" style="background: rgba(242, 169, 0, 0.2); border-color: #f2a900; color: #fff;">📞 928 25 26 30</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 7 Pestañas oficiales
+# 7 Pestañas oficiales con experiencia mobile-first
 tab_mapa, tab_parada, tab_ruta, tab_tarjeta, tab_tiendas, tab_servicio, tab_lab = st.tabs([
     "🗺️ Mapa en Vivo (Google Maps)",
-    "🚏 Siguiente Parada",
-    "🧭 ¿A dónde quieres ir?",
-    "💳 Fares & Cards (Saldo)",
-    "🏪 Vendedor de Tickets",
-    "⚠️ Estado del Servicio",
-    "🔬 Laboratorio & Optimización",
+    "🚏 Panel en Parada (Marquesina)",
+    "🧭 Planificador de Ruta (Garantía 95%)",
+    "💳 Mi Tarjeta (Regla 15 Viajes)",
+    "🏪 Puntos de Venta & Recarga",
+    "⚠️ Radar de Tráfico GC-1",
+    "🔬 Laboratorio & Optimización ULPGC",
 ])
 
 # ==============================================================================
 # 1. MAPA EN VIVO CON GOOGLE MAPS
 # ==============================================================================
 with tab_mapa:
-    st.markdown("#### 🗺️ Mapa de la Red Insular en Google Maps con Flota GPS en Directo")
-    st.caption("Visualiza las paradas oficiales, el trazado vial de las carreteras principales (GC-1, GC-2 y GC-110) y la ubicación GPS en tiempo real de las guaguas sobre la cartografía oficial de Google Maps.")
+    st.markdown("##### 🗺️ Red Insular en Google Maps con Posicionamiento GPS en Tiempo Real")
+
+    c_filt1, c_filt2 = st.columns([1.5, 1])
+    with c_filt1:
+        corridor_filter = st.selectbox(
+            "Filtrar Corredor en Google Maps:",
+            [
+                "Todos los Corredores de Gran Canaria",
+                "Corredor Sur GC-1 (San Telmo ➔ Maspalomas ➔ Mogán)",
+                "Corredor Universitario / Centro (San Telmo ➔ Campus Tafira ➔ San Mateo)",
+                "Corredor Norte GC-2 (San Telmo ➔ Arucas ➔ Gáldar ➔ Agaete)",
+            ],
+        )
+    with c_filt2:
+        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+        st.caption("🛰️ **Precisión GPS:** ±5 metros • Datos telemetría actualizados cada 10 segundos")
 
     fleet_df = get_live_simulated_fleet()
 
@@ -390,6 +473,14 @@ with tab_mapa:
     # 1. Trazados viales
     roads_group = folium.FeatureGroup(name="🛣️ Carreteras Principales (GC-1, GC-2, GC-110)", show=True)
     for poly in HIGHWAY_POLYLINES:
+        # Filtrado por corredor si aplica
+        if "Sur" in corridor_filter and "Sur" not in poly["name"]:
+            continue
+        if "Universitario" in corridor_filter and "Centro" not in poly["name"]:
+            continue
+        if "Norte" in corridor_filter and "Norte" not in poly["name"]:
+            continue
+
         coords_latlon = [[pt[1], pt[0]] for pt in poly["path"]]
         c_rgb = poly["color"][:3]
         c_hex = f"#{c_rgb[0]:02x}{c_rgb[1]:02x}{c_rgb[2]:02x}"
@@ -397,7 +488,7 @@ with tab_mapa:
             locations=coords_latlon,
             color=c_hex,
             weight=poly.get("width", 5),
-            opacity=0.85,
+            opacity=0.88,
             tooltip=poly["name"],
         ).add_to(roads_group)
     roads_group.add_to(m_live)
@@ -407,13 +498,13 @@ with tab_mapa:
     for s in OFFICIAL_STOPS:
         popup_html = f"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; width: 220px;">
-            <div style="background: #00778b; color: white; padding: 4px 8px; border-radius: 4px 4px 0 0; font-weight: bold;">
+            <div style="background: #00778b; color: white; padding: 5px 8px; border-radius: 4px 4px 0 0; font-weight: bold;">
                 Parada #{s['stop_code']}
             </div>
             <div style="padding: 8px; border: 1px solid #e2e8f0; border-top: none; background: white;">
                 <b style="color: #192a3d; font-size: 13px;">{s['name']}</b><br/>
                 <span style="color: #64748b;">Zona: {s['zone']} • Altitud: {s['altitude']} m</span><br/>
-                <div style="margin-top: 6px;">
+                <div style="margin-top: 8px;">
                     <a href="https://www.google.com/maps/search/?api=1&query={s['lat']},{s['lon']}" target="_blank" style="color: #00778b; font-weight: bold; text-decoration: none;">
                         📍 Abrir en Google Maps ➔
                     </a>
@@ -467,8 +558,8 @@ with tab_mapa:
             <div style="padding: 8px; border: 1px solid #e2e8f0; border-top: none; background: white;">
                 <b>Destino: {b['destination']}</b><br/>
                 <span style="color: #64748b;">Unidad #{b['bus_id']} • Velocidad: {b['speed_kmh']} km/h</span><br/>
-                <span style="color: #64748b;">Ocupación: <b>{b['occupancy_pct']}%</b></span><br/>
-                <div style="margin-top: 6px;">
+                <span style="color: #64748b;">Ocupación Poisson: <b>{b['occupancy_pct']}%</b></span><br/>
+                <div style="margin-top: 8px;">
                     <a href="https://www.google.com/maps/search/?api=1&query={b['lat']},{b['lon']}" target="_blank" style="color: #00778b; font-weight: bold; text-decoration: none;">
                         📍 Ver en Google Maps ➔
                     </a>
@@ -485,250 +576,277 @@ with tab_mapa:
     fleet_group.add_to(m_live)
 
     folium.LayerControl(position="topright").add_to(m_live)
-    st_folium(m_live, height=520, use_container_width=True)
+    st_folium(m_live, height=500, use_container_width=True)
 
-    # Tarjetas de guaguas cercanas
-    st.markdown("##### 🚌 Unidades en Ruta con Telemetría GPS Conectada:")
+    # Tarjetas interactivas de las guaguas en ruta
+    st.markdown("##### 🟢 Radar de Guaguas Monitorizadas en Directo:")
     col_f1, col_f2, col_f3 = st.columns(3)
-    for idx, (_, b) in enumerate(fleet_df.head(6).iterrows()):
+    for idx, (_, b) in enumerate(fleet_df.iterrows()):
         col = [col_f1, col_f2, col_f3][idx % 3]
-        badge_cls = "line-badge-express" if b["line"] in ["30", "50", "91"] else "line-badge"
+        badge_cls = "route-badge-express" if b["line"] in ["30", "50", "91"] else "route-badge"
         delay_pill = "pill-red" if b["delay_min"] > 10 else ("pill-amber" if b["delay_min"] > 5 else "pill-green")
+        progress_pct = int(min(95, max(15, b["speed_kmh"] * 0.9 + 10)))
+
         with col:
             st.markdown(f"""
-            <div class="global-card" style="padding: 12px 14px;">
+            <div class="transit-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span class="{badge_cls}" style="width: 38px; height: 38px; font-size: 1rem;">{b['line']}</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="{badge_cls}">{b['line']}</span>
                         <div>
-                            <div style="font-weight: 700; color: #192a3d; font-size: 0.95rem;">{b['destination']}</div>
-                            <div style="font-size: 0.75rem; color: #64748b;">Unidad #{b['bus_id']}</div>
+                            <div style="font-weight: 800; color: #192a3d; font-size: 1.05rem;">{b['destination']}</div>
+                            <div style="font-size: 0.78rem; color: #64748b;">Unidad <b>#{b['bus_id']}</b> • {b['speed_kmh']} km/h</div>
                         </div>
                     </div>
                     <span class="pill {delay_pill}">+{b['delay_min']} min</span>
                 </div>
-                <div style="font-size: 0.8rem; color: #64748b; margin-top: 8px; display: flex; justify-content: space-between;">
-                    <span>Velocidad: <b>{b['speed_kmh']} km/h</b></span>
-                    <span>Ocupación: <b>{b['occupancy_pct']}%</b></span>
+                <div style="margin-top: 12px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-bottom: 3px;">
+                        <span>En ruta</span>
+                        <span>Ocupación: <b>{b['occupancy_pct']}%</b></span>
+                    </div>
+                    <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                        <div style="background: {'#00778b' if b['occupancy_pct'] < 75 else '#f2a900'}; width: {b['occupancy_pct']}%; height: 100%;"></div>
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. SIGUIENTE PARADA (BUSCADOR POR CÓDIGO OFICIAL DE MARQUESINA)
+# 2. PANEL EN PARADA (MARQUESINA DIGITAL LED)
 # ==============================================================================
 with tab_parada:
-    st.markdown("#### 🚏 Siguiente Parada (Buscador Oficial por Código)")
-    st.caption("Introduce el código de 4 dígitos impreso en el poste oficial de tu marquesina para ver las salidas en tiempo real.")
+    st.markdown("##### 🚏 Panel Digital de Salidas en Marquesina")
+    st.caption("Visualiza las próximas llegadas como si estuvieras frente a la pantalla digital de la estación o marquesina.")
 
-    c_in, c_info = st.columns([1, 1.4], gap="large")
+    col_sel1, col_sel2 = st.columns([1, 1.2])
 
-    with c_in:
-        st.markdown("**Acceso Rápido a Nodos Principales:**")
-        chip_col1, chip_col2, chip_col3 = st.columns(3)
-        with chip_col1:
-            if st.button("1001 San Telmo"):
-                st.session_state["selected_code"] = "1001"
-        with chip_col2:
-            if st.button("2015 ULPGC Tafira"):
-                st.session_state["selected_code"] = "2015"
-        with chip_col3:
-            if st.button("4001 Aeropuerto"):
-                st.session_state["selected_code"] = "4001"
+    with col_sel1:
+        st.markdown("**Acceso directo a marquesinas clave:**")
+        qc1, qc2, qc3, qc4 = st.columns(4)
+        with qc1:
+            if st.button("San Telmo (1001)"):
+                st.session_state["stop_code"] = "1001"
+        with qc2:
+            if st.button("Tafira (2015)"):
+                st.session_state["stop_code"] = "2015"
+        with qc3:
+            if st.button("Gando (4001)"):
+                st.session_state["stop_code"] = "4001"
+        with qc4:
+            if st.button("Faro (5020)"):
+                st.session_state["stop_code"] = "5020"
 
-        def_val = st.session_state.get("selected_code", "2015")
-        stop_code_input = st.text_input("Código de marquesina (4 dígitos):", value=def_val)
-        found_stop = search_stop_by_code(stop_code_input)
+        c_val = st.session_state.get("stop_code", "2015")
+        sc_input = st.text_input("O introduce el código oficial de 4 dígitos:", value=c_val)
+        selected_stop = search_stop_by_code(sc_input) or OFFICIAL_STOPS[0]
 
-        if not found_stop:
-            st.warning(f"No se ha encontrado ninguna parada con el código '{stop_code_input}'. Mostrando nodo de referencia San Telmo (1001).")
-            found_stop = OFFICIAL_STOPS[0]
+        is_peak = st.toggle("Simular Hora Punta Insular", value=True)
+        gc1_jam = st.session_state.get("gc1_incident_active", False)
 
-        st.markdown(f"""
-        <div class="global-card" style="border-left: 5px solid #00778b; background: #ffffff;">
-            <div style="font-size: 0.8rem; color: #00778b; font-weight: 800; text-transform: uppercase;">
-                PARADA OFICIAL #{found_stop['stop_code']}
-            </div>
-            <div style="font-size: 1.25rem; font-weight: 800; color: #192a3d; margin: 4px 0;">
-                {found_stop['name']}
-            </div>
-            <div style="font-size: 0.85rem; color: #64748b;">
-                Municipio / Zona: <b>{found_stop['zone']}</b> • Altitud: <b>{found_stop['altitude']} m</b>
-            </div>
-            <div style="margin-top: 8px;">
-                <a href="https://www.google.com/maps/search/?api=1&query={found_stop['lat']},{found_stop['lon']}" target="_blank" style="color: #00778b; font-size: 0.82rem; font-weight: bold; text-decoration: none;">
-                    📍 Ver marquesina en Google Maps ➔
-                </a>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        is_peak_toggle = st.toggle("Simular Condiciones de Hora Punta Insular", value=True)
-
-    with c_info:
-        st.markdown(f"##### Próximas salidas en directo: **#{found_stop['stop_code']} {found_stop['name']}**")
-        gc1_jam_flag = st.session_state.get("gc1_incident_active", False)
-
+    with col_sel2:
+        now_str = datetime.now().strftime("%H:%M:%S")
         departures = get_live_departures_for_hub(
-            stop_id=found_stop["stop_code"],
-            hour=8 if is_peak_toggle else 11,
-            minute=25,
+            stop_id=selected_stop["stop_code"],
+            hour=8 if is_peak else 11,
+            minute=20,
             is_weekend=False,
-            incident_gc1=gc1_jam_flag,
-            rain_medianias=False,
+            incident_gc1=gc1_jam,
         )
 
-        for dep in departures:
-            badge_cls = "line-badge-express" if dep.route_short_name in ["30", "50", "91"] else "line-badge"
-            crowd_pill = "pill-green" if "libres" in dep.crowding_level else ("pill-amber" if "pie" in dep.crowding_level else "pill-red")
-            status_pill = "pill-green" if "horario" in dep.status_badge else ("pill-amber" if "leve" in dep.status_badge else "pill-red")
+        st.markdown(f"""
+        <div class="led-marquesina-screen">
+            <div class="led-header">
+                <div>
+                    <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">MARQUESINA #{selected_stop['stop_code']}</span>
+                    <div class="led-stop-name">{selected_stop['name']}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="led-time">{now_str}</div>
+                    <span style="font-size: 0.72rem; color: #34d399;">● TIEMPO REAL</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
+        for dep in departures:
             st.markdown(f"""
-            <div class="global-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 14px;">
-                        <div class="{badge_cls}">{dep.route_short_name}</div>
-                        <div>
-                            <div style="font-size: 1.15rem; font-weight: 800; color: #192a3d;">{dep.destination}</div>
-                            <div style="font-size: 0.82rem; color: #64748b;">{dep.route_long_name}</div>
+            <div class="led-row">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <span style="background: #fbbf24; color: #0f172a; font-weight: 900; font-size: 1.15rem; padding: 4px 10px; border-radius: 6px;">
+                        {dep.route_short_name}
+                    </span>
+                    <div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: #ffffff;">{dep.destination}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8;">{dep.route_long_name}</div>
+                        <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 2px;">
+                            {dep.crowding_level} ({dep.passengers_estimate}/65 plazas)
                         </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 1.55rem; font-weight: 900; color: #00778b;">
-                            en {dep.minutes_to_arrival_min} - {dep.minutes_to_arrival_max} min
-                        </div>
-                        <div style="font-size: 0.82rem; color: #64748b;">Hora prevista: <b>{dep.expected_arrival_time}</b></div>
                     </div>
                 </div>
-                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.82rem;">
-                    <div>
-                        <span style="color: #64748b;">Ocupación Poisson:</span> 
-                        <span class="pill {crowd_pill}">{dep.crowding_level} ({dep.passengers_estimate}/65 pax)</span>
-                    </div>
-                    <div><span class="pill {status_pill}">{dep.status_badge}</span></div>
+                <div style="text-align: right;">
+                    <div class="led-arrival-min">{dep.minutes_to_arrival_min} min</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8;">Prevista: {dep.expected_arrival_time}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
+        st.markdown("</div>", unsafe_allow_html=True)
+
 # ==============================================================================
-# 3. ¿A DÓNDE QUIERES IR? (CALCULADORA DE TRAYECTOS CON GARANTÍA DE LLEGADA)
+# 3. PLANIFICADOR DE RUTA (GARANTÍA DE LLEGADA 95%)
 # ==============================================================================
 with tab_ruta:
-    st.markdown("#### 🧭 ¿A dónde quieres ir? (Planificador Predictivo)")
-    st.caption("Calcula el itinerario óptimo y la **hora exacta a la que debes salir de casa** con 95% de confianza bayesiana.")
+    st.markdown("##### 🧭 Planificador de Ruta con Garantía de Llegada Bayesiana")
+    st.caption("A diferencia de la app tradicional que da horarios fijos que fallan en atascos, nuestro motor calcula hacia atrás la hora exacta a la que debes salir de casa para asegurar tu llegada con 95% de confianza.")
 
-    r_col1, r_col2 = st.columns([1, 1.2], gap="large")
+    col_r1, col_r2 = st.columns([1, 1.4], gap="large")
 
-    with r_col1:
-        destino_motivo = st.selectbox("¿Cuál es tu compromiso?", [
-            "🎓 Examen / Clase en Campus de Tafira (ULPGC)",
-            "✈️ Vuelo en el Aeropuerto de Gran Canaria (Gando LPA)",
-            "🏥 Cita Médica (Hospital Insular / Dr. Negrín)",
-            "💼 Trabajo / Jornada Laboral (Maspalomas / Sur)",
-        ])
-        origen_p = st.selectbox("Punto de partida:", [s["name"] for s in OFFICIAL_STOPS[:8]], index=0)
-        h_llegada = st.time_input("Hora requerida de llegada a destino:", value=time(9, 0))
-        h_str = h_llegada.strftime("%H:%M")
+    with col_r1:
+        compromiso = st.selectbox(
+            "Selecciona tu compromiso:",
+            [
+                "🎓 Examen / Evaluación en Campus Tafira (ULPGC)",
+                "✈️ Vuelo en el Aeropuerto de Gran Canaria (Gando LPA)",
+                "🏥 Cita Médica (Hospital Insular / Dr. Negrín)",
+                "💼 Jornada Laboral / Turno de Trabajo",
+            ],
+        )
 
-        is_rush = st.checkbox("Condición de hora punta insular", value=True)
-        gc1_alert = st.checkbox("Considerar retención en autovía GC-1", value=st.session_state.get("gc1_incident_active", False))
+        origen_nombre = st.selectbox(
+            "Punto de Salida:",
+            [s["name"] for s in OFFICIAL_STOPS[:8]],
+            index=0,
+        )
 
-        dur_b = 32 if "Tafira" in destino_motivo else (26 if "Vuelo" in destino_motivo else 38)
-        calc_out = calculate_guaranteed_departure_time(
-            origin_name=origen_p,
-            destination_name=destino_motivo,
+        hora_meta = st.time_input("Hora exacta a la que debes estar en destino:", value=time(9, 0))
+        h_str = hora_meta.strftime("%H:%M")
+
+        is_rush_hour = st.checkbox("Condiciones de Hora Punta de Tráfico", value=True)
+        gc1_jam_flag = st.checkbox("Retención confirmada en Autovía GC-1", value=st.session_state.get("gc1_incident_active", False))
+
+        base_min = 32 if "Tafira" in compromiso else (26 if "Vuelo" in compromiso else 38)
+        calc_res = calculate_guaranteed_departure_time(
+            origin_name=origen_nombre,
+            destination_name=compromiso,
             target_arrival_time_str=h_str,
-            base_duration_min=dur_b,
-            is_peak=is_rush,
-            incident_gc1=gc1_alert,
+            base_duration_min=base_min,
+            is_peak=is_rush_hour,
+            incident_gc1=gc1_jam_flag,
             is_critical_event=True,
         )
 
-    with r_col2:
+    with col_r2:
         st.markdown(f"""
-        <div class="global-card" style="border: 2px solid #00778b; background: #ffffff; text-align: center; padding: 22px;">
-            <div style="font-size: 0.85rem; color: #00778b; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">
-                Hora Exacta Recomendada de Salida de Casa
+        <div class="transit-card" style="border: 2px solid #00778b; text-align: center; padding: 22px; background: #ffffff;">
+            <span class="pill pill-teal" style="font-size: 0.85rem; padding: 4px 12px;">🛡️ GARANTÍA DE LLEGADA AL 95%</span>
+            <div style="font-size: 0.88rem; color: #64748b; margin-top: 8px;">Debes salir de casa exactamente a las:</div>
+            <div style="font-size: 3.8rem; font-weight: 900; color: #f2a900; line-height: 1; margin: 4px 0;">
+                {calc_res['recommended_departure']}
             </div>
-            <div style="font-size: 3.4rem; font-weight: 900; color: #f2a900; margin: 4px 0; line-height: 1.1;">
-                {calc_out['recommended_departure']}
+            <div style="font-size: 1rem; color: #192a3d; font-weight: 700;">
+                Para llegar sin estrés antes de las {calc_res['target_arrival']}
             </div>
-            <div style="font-size: 0.95rem; color: #192a3d;">
-                Para llegar sin contratiempos antes de las <b>{calc_out['target_arrival']}</b>
-            </div>
-            <div style="margin-top: 14px; font-size: 0.85rem; color: #065f46; background: #ecfdf5; padding: 10px; border-radius: 8px; border: 1px solid #a7f3d0; text-align: left;">
-                🛡️ <b>Garantía de Llegada Bayesiana ({calc_out['confidence_level']}):</b><br>
-                {calc_out['advice']}
+            <div style="font-size: 0.82rem; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px; margin-top: 14px; text-align: left;">
+                💡 <b>Recomendación del Motor Bayesiano:</b> {calc_res['advice']}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.metric("Tiempo de trayecto", f"{calc_out['expected_travel_time_mean']} min")
-        with c2:
-            st.metric("Margen por tráfico", f"+{calc_out['safety_margin_min']} min")
-        with c3:
-            st.metric("Espera en andén", f"+{calc_out['walk_buffer_min']} min")
+        st.markdown("###### 📍 Desglose de Itinerario Paso a Paso:")
+        # Generación de pasos realistas
+        t_dep = datetime.strptime(calc_res['recommended_departure'], "%H:%M")
+        t_walk = t_dep + timedelta(minutes=calc_res['walk_buffer_min'])
+        t_board = t_walk + timedelta(minutes=4)
+        t_arrive = t_board + timedelta(minutes=calc_res['expected_travel_time_mean'])
+
+        st.markdown(f"""
+        <div class="timeline-step">
+            <div class="step-time">{t_dep.strftime('%H:%M')}</div>
+            <div class="step-dot"></div>
+            <div class="step-content">
+                <b>Salida de casa</b> • Caminar {calc_res['walk_buffer_min']} min hasta la marquesina más cercana
+            </div>
+        </div>
+        <div class="timeline-step">
+            <div class="step-time">{t_board.strftime('%H:%M')}</div>
+            <div class="step-dot" style="background: #f2a900; box-shadow: 0 0 0 2px #f2a900;"></div>
+            <div class="step-content">
+                <b>Subir a la guagua</b> • Línea {'303 a Tafira' if 'Tafira' in compromiso else ('30 al Sur' if 'Vuelo' in compromiso else '01 Interurbano')}
+            </div>
+        </div>
+        <div class="timeline-step">
+            <div class="step-time">{t_arrive.strftime('%H:%M')}</div>
+            <div class="step-dot" style="background: #059669; box-shadow: 0 0 0 2px #059669;"></div>
+            <div class="step-content">
+                <b>Llegada a destino</b> • <b>{calc_res['safety_margin_min']} min de margen de seguridad</b> antes de tu hora límite ({calc_res['target_arrival']})
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 4. FARES & CARDS (SALDO DE TARJETA & REGLA 15 VIAJES)
+# 4. MI TARJETA (REGLA DE LOS 15 VIAJES Y SALDO)
 # ==============================================================================
 with tab_tarjeta:
-    st.markdown("#### 💳 Fares & Cards / Estado de tu Tarjeta de Transporte")
-    st.caption("Consulta el estado de tu título de transporte, tu saldo y el cumplimiento del umbral de 15 viajes mensuales para gratuidad 100%.")
+    st.markdown("##### 💳 Mi Tarjeta de Transporte & Monitor de Gratuidad")
+    st.caption("Controla tu tarjeta y el cumplimiento estricto de los 15 viajes mensuales para no perder la bonificación del 100% de la Comunidad Autónoma.")
 
-    col_fc1, col_fc2 = st.columns([1, 1.3], gap="large")
+    c_card1, c_card2 = st.columns([1, 1.3], gap="large")
 
-    with col_fc1:
-        tipo_t = st.selectbox("Selecciona tu tarjeta nominativa o título de viaje:", [
-            "Wawa Joven (Gratuito < 30 años - AUTGC)",
-            "Bono Residente Canario (Gratuito - AUTGC)",
-            "Bono Oro (Jubilados / Pensionistas)",
-            "Tarjeta TransGC (Monedero Recargable)",
-            "Billetes no nominativos (Ida y Vuelta / Tarjeta AB)",
-        ])
-        dni_t = st.text_input("Número de tarjeta / DNI titular:", value="45389201-K")
-        viajes_m = st.number_input("Viajes validados este mes:", min_value=0, max_value=80, value=11, step=1)
-        dia_m = st.slider("Día actual del mes:", min_value=1, max_value=30, value=22)
+    with c_card1:
+        tipo_tarjeta = st.selectbox(
+            "Tipo de Tarjeta Nominativa:",
+            [
+                "Wawa Joven (< 30 años - AUTGC)",
+                "Bono Residente Canario (AUTGC)",
+                "Bono Oro (Jubilados / Pensionistas)",
+                "Tarjeta TransGC (Monedero)",
+            ],
+        )
+        dni_user = st.text_input("DNI / NIE del Titular:", value="45389201-K")
+        viajes_hechos = st.slider("Viajes realizados en el ciclo actual:", 0, 30, 11)
+        dia_del_mes = st.slider("Día actual del mes:", 1, 30, 22)
 
-        prog = calculate_free_transit_progress(viajes_m, dia_m)
+        prog_data = calculate_free_transit_progress(viajes_hechos, dia_del_mes)
 
-    with col_fc2:
+    with c_card2:
         st.markdown(f"""
-        <div class="canary-transit-card">
+        <div class="smartcard-3d">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div class="smartcard-chip"></div>
-                <span class="pill pill-green" style="background: rgba(255,255,255,0.9); color: #047857;">VALIDADA CONTACTLESS</span>
+                <div class="smartcard-chip-gold"></div>
+                <span class="pill pill-green" style="background: #ffffff; color: #047857;">CONTACTLESS ACTIVA</span>
             </div>
-            <div style="font-weight: 800; font-size: 1.25rem; color: #f2a900; margin-top: 14px;">{tipo_t.split(' (')[0]}</div>
-            <div style="font-size: 0.85rem; color: #d1f4fa; margin-top: 2px;">Titular: <b>{dni_t}</b> • Cabildo de Gran Canaria</div>
-            <div style="margin-top: 16px; font-size: 2.3rem; font-weight: 900; color: #ffffff;">
-                {prog['trips_completed']} <span style="font-size: 1.2rem; color: #f2a900;">/ {prog['goal_trips']} viajes</span>
+            <div style="font-size: 1.4rem; font-weight: 900; color: #f2a900; margin-top: 18px;">
+                {tipo_tarjeta.split(' (')[0]}
             </div>
-            <div style="margin-top: 6px; font-size: 0.88rem; color: #e6f6f8;">
-                {prog['message']}
+            <div style="font-size: 0.85rem; color: #d1f4fa; margin-top: 2px;">
+                Titular: <b>{dni_user}</b> • AUTGC Gran Canaria
+            </div>
+            <div style="margin-top: 18px; font-size: 2.5rem; font-weight: 900; color: #ffffff;">
+                {prog_data['trips_completed']} <span style="font-size: 1.2rem; color: #f2a900;">/ {prog_data['goal_trips']} viajes</span>
+            </div>
+            <div style="font-size: 0.9rem; color: #e2e8f0; margin-top: 4px;">
+                {prog_data['message']}
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.progress(prog["percentage"] / 100.0)
-        st.caption(f"Progreso del ciclo mensual: {prog['percentage']}% completado. Quedan {prog['days_left']} días.")
+        st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+        st.progress(prog_data['percentage'] / 100.0)
+        st.caption(f"Progreso mensual: {prog_data['percentage']}% completado. Quedan {prog_data['days_left']} días.")
 
-        ahorro = viajes_m * 2.80
+        ahorro_eur = viajes_hechos * 2.80
         st.markdown(f"""
-        <div class="global-card" style="background: #ecfdf5; border: 1px solid #a7f3d0; margin-top: 12px; padding: 12px 16px;">
-            💰 <b>Ahorro acumulado por bonificación pública:</b> Has ahorrado <b style="color: #047857; font-size: 1.2rem;">{ahorro:.2f} €</b> este mes gracias a la política de gratuidad del transporte terrestre de Canarias.
+        <div class="transit-card" style="background: #ecfdf5; border-color: #a7f3d0; margin-top: 10px;">
+            💰 <b>Ahorro acumulado este mes:</b> Has ahorrado <b style="color: #047857; font-size: 1.15rem;">{ahorro_eur:.2f} €</b> frente a billete simple gracias a la gratuidad del transporte público insular.
         </div>
         """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. VENDEDOR DE TICKETS (OFICINAS Y PUNTOS OFICIALES DE RECARGA EN GOOGLE MAPS)
+# 5. PUNTOS DE VENTA & RECARGA
 # ==============================================================================
 with tab_tiendas:
-    st.markdown("#### 🏪 Vendedor de Tickets & Puntos Oficiales de Recarga en Google Maps")
-    st.caption("Localiza las estaciones centrales, oficinas de atención al viajero y quioscos autorizados de Global en Gran Canaria.")
+    st.markdown("##### 🏪 Estaciones y Oficinas Oficiales de Global en Gran Canaria")
+    st.caption("Puntos de recarga autorizados, venta de billetes y atención personalizada al viajero.")
 
     m_offices = folium.Map(
         location=[27.97, -15.53],
@@ -753,7 +871,7 @@ with tab_tiendas:
                 <b>Dirección:</b> {of['address']}<br/>
                 <b>Horario:</b> {of['hours']}<br/>
                 <span style="color: #00778b;"><b>Servicios:</b> {of['services']}</span><br/>
-                <div style="margin-top: 6px;">
+                <div style="margin-top: 8px;">
                     <a href="https://www.google.com/maps/search/?api=1&query={of['lat']},{of['lon']}" target="_blank" style="color: #00778b; font-weight: bold; text-decoration: none;">
                         📍 Cómo llegar en Google Maps ➔
                     </a>
@@ -766,14 +884,14 @@ with tab_tiendas:
             background: #00778b;
             color: #ffffff;
             font-size: 14px;
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 2px solid #ffffff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.35);
         ">
             🎫
         </div>
@@ -786,18 +904,18 @@ with tab_tiendas:
         ).add_to(m_offices)
 
     folium.LayerControl().add_to(m_offices)
-    st_folium(m_offices, height=450, use_container_width=True)
+    st_folium(m_offices, height=440, use_container_width=True)
 
     col_of1, col_of2 = st.columns(2)
     for i, of in enumerate(TICKET_OFFICES):
         target_col = col_of1 if i % 2 == 0 else col_of2
         with target_col:
             st.markdown(f"""
-            <div class="global-card">
+            <div class="transit-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-weight: 800; color: #00778b; font-size: 1.05rem;">{of['name']}</div>
                     <a href="https://www.google.com/maps/search/?api=1&query={of['lat']},{of['lon']}" target="_blank" style="color: #f2a900; font-size: 0.82rem; font-weight: bold; text-decoration: none;">
-                        📍 Google Maps
+                        📍 Abrir en Google Maps
                     </a>
                 </div>
                 <div style="font-size: 0.85rem; color: #192a3d; margin-top: 4px;">📍 {of['address']}</div>
@@ -809,20 +927,20 @@ with tab_tiendas:
             """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. ESTADO DEL SERVICIO & ALERTAS EN CARRETERA
+# 6. RADAR DE TRÁFICO GC-1 & ESTADO DEL SERVICIO
 # ==============================================================================
 with tab_servicio:
-    st.markdown("#### ⚠️ Estado del Servicio & Radar Causal de Carreteras")
-    st.caption("Avisos oficiales de incidencias en carreteras con **inferencia de impacto en tiempo real** mediante Red Bayesiana (`pgmpy`).")
+    st.markdown("##### ⚠️ Radar de Tráfico Insular & Red Causal Bayesiana")
+    st.caption("Avisos oficiales y motor bayesiano con `pgmpy` evaluando la propagación de demoras en cadena sobre las líneas del Sur, Aeropuerto y Tafira.")
 
     col_s1, col_s2 = st.columns([1, 1.4], gap="large")
 
     with col_s1:
-        st.markdown("##### Simulación de Incidencias en Carretera:")
-        acc_gc1 = st.toggle("💥 Accidente en GC-1 (Salida Jinámar / Nudo Hoya de la Plata)", value=st.session_state.get("gc1_incident_active", False))
+        st.markdown("###### Simular Incidentes en Carretera:")
+        acc_gc1 = st.toggle("💥 Accidente en Autovía GC-1 (Salida Jinámar / Hoya de la Plata)", value=st.session_state.get("gc1_incident_active", False))
         st.session_state["gc1_incident_active"] = acc_gc1
 
-        rain_med = st.toggle("🌧️ Alerta Meteorológica por Lluvia / Niebla en Medianías (GC-15)", value=False)
+        rain_med = st.toggle("🌧️ Alerta Meteorológica de Lluvia / Niebla en Medianías (GC-15)", value=False)
         st_jam = st.toggle("🏙️ Saturación de Dársenas en Estación San Telmo", value=True)
 
         ev_dict = {
@@ -841,18 +959,18 @@ with tab_servicio:
         p_vuelo = res_causal["Riesgo_Vuelo_Aeropuerto"]["Alto"]
         p_l303 = res_causal["Retraso_L303_Medianias"]["Retraso"]
 
-        st.markdown("##### Evaluación de Riesgo en Corredores:")
+        st.markdown("###### Evaluación de Riesgo en Corredores:")
         st.markdown(f"""
-        <div class="global-card" style="border-left: 5px solid {'#dc2626' if p_jam > 0.4 else '#059669'};">
-            <div style="font-weight: 800; color: #192a3d;">Autovía del Sur (GC-1) • Salida Hoya de la Plata / Jinámar</div>
+        <div class="transit-card" style="border-left: 5px solid {'#dc2626' if p_jam > 0.4 else '#059669'};">
+            <div style="font-weight: 800; color: #192a3d;">Autovía del Sur (GC-1) • Hoya de la Plata / Jinámar</div>
             <div style="font-size: 0.82rem; color: #64748b;">Líneas concurrentes: 01, 11, 12, 30, 50, 91</div>
             <div style="margin-top: 8px;">
                 <span class="pill {'pill-red' if p_jam > 0.4 else 'pill-green'}">Probabilidad de Colapso: {p_jam*100:.1f}%</span>
-                <span style="color: #00778b; font-weight: 700; margin-left: 10px; font-size: 0.85rem;">Demora media estimada: +{int(p_l30*24)} min</span>
+                <span style="color: #00778b; font-weight: 700; margin-left: 10px; font-size: 0.85rem;">Demora estimada: +{int(p_l30*24)} min</span>
             </div>
         </div>
         
-        <div class="global-card" style="border-left: 5px solid {'#dc2626' if p_vuelo > 0.3 else '#059669'};">
+        <div class="transit-card" style="border-left: 5px solid {'#dc2626' if p_vuelo > 0.3 else '#059669'};">
             <div style="font-weight: 800; color: #192a3d;">Conexión Aeropuerto de Gran Canaria (Gando LPA)</div>
             <div style="font-size: 0.82rem; color: #64748b;">Líneas: 30, 91, 60, 66 (Interurbano Costa)</div>
             <div style="margin-top: 8px;">
@@ -860,7 +978,7 @@ with tab_servicio:
             </div>
         </div>
 
-        <div class="global-card" style="border-left: 5px solid {'#b45309' if p_l303 > 0.35 else '#059669'};">
+        <div class="transit-card" style="border-left: 5px solid {'#b45309' if p_l303 > 0.35 else '#059669'};">
             <div style="font-weight: 800; color: #192a3d;">Corredor Campus Tafira / Medianías (GC-110 / GC-15)</div>
             <div style="font-size: 0.82rem; color: #64748b;">Líneas: 303, 311, 25, 327</div>
             <div style="margin-top: 8px;">
@@ -873,8 +991,8 @@ with tab_servicio:
 # 7. LABORATORIO DE DATOS & MÉTODOS DE OPTIMIZACIÓN (TFG ULPGC)
 # ==============================================================================
 with tab_lab:
-    st.markdown("#### 🔬 Laboratorio de Ciencia de Datos & Métodos de Optimización (ULPGC)")
-    st.caption("Alineado con el programa docente de Análisis Exploratorio de Datos (AEDV) y Métodos de Optimización (3º Grado en Ciencia e Ingeniería de Datos).")
+    st.markdown("##### 🔬 Laboratorio Analítico de Ciencia de Datos & Métodos de Optimización (ULPGC)")
+    st.caption("Alineado con el temario oficial de Análisis Exploratorio de Datos (AEDV) y Métodos de Optimización (3º Grado en Ciencia e Ingeniería de Datos).")
 
     lab_category = st.radio(
         "Selecciona el área de fundamentación matemática a inspeccionar:",
@@ -898,12 +1016,12 @@ with tab_lab:
         )
 
         if "1. Panel de los 4 Diagnósticos" in lab_section:
-            st.markdown("##### Panel Econométrico Clásico de Gauss-Markov")
+            st.markdown("###### Panel Econométrico Clásico de Gauss-Markov")
             st.caption("Verificación de linealidad, normalidad de residuos y heterocedasticidad del modelo MCO de tiempos de viaje.")
             fig_quad = plot_gauss_markov_quad(ols_model, df_ops)
             st.plotly_chart(fig_quad, use_container_width=True)
             st.markdown(f"""
-            <div class="global-card">
+            <div class="transit-card">
                 <div><b>Ecuación estimada:</b> <code>{ols_bundle.formula}</code></div>
                 <div><b>R² ajustado:</b> <code>{ols_bundle.adj_r_squared:.4f}</code> | <b>F-statistic:</b> <code>{ols_bundle.f_statistic:.1f}</code></div>
                 <div><b>Test Breusch-Pagan:</b> p-valor = 0.0000 (Presencia significativa de heterocedasticidad en horas punta)</div>
@@ -911,13 +1029,13 @@ with tab_lab:
             """, unsafe_allow_html=True)
 
         elif "2. Análisis de Componentes Principales" in lab_section:
-            st.markdown("##### Biplot PCA de la Red Insular de Paradas")
+            st.markdown("###### Biplot PCA de la Red Insular de Paradas")
             st.caption("Proyección bidimensional de la matriz de paradas mostrando la varianza explicada y los vectores de carga (*loadings*).")
             fig_pca = plot_pca_biplot_stops(stops_df)
             st.plotly_chart(fig_pca, use_container_width=True)
 
         elif "3. Actualización Bayesiana" in lab_section:
-            st.markdown("##### Curvas de Densidad: Prior vs Verosimilitud vs Posterior")
+            st.markdown("###### Curvas de Densidad: Prior vs Verosimilitud vs Posterior")
             st.caption("Modelo conjugado Beta-Binomial para la puntualidad dinámica $\\theta$ con masa de credibilidad del 95% HDI.")
             col_by1, col_by2 = st.columns([1, 2])
             with col_by1:
@@ -930,7 +1048,7 @@ with tab_lab:
                 st.plotly_chart(fig_bayes, use_container_width=True)
 
         elif "4. Grafo Causal" in lab_section:
-            st.markdown("##### Grafo Acíclico Dirigido (DAG) Causal de Gran Canaria")
+            st.markdown("###### Grafo Acíclico Dirigido (DAG) Causal de Gran Canaria")
             st.caption("Visualización de las aristas dirigidas y probabilidades condicionales calculadas con `pgmpy`.")
             evidence_active = {
                 "Incidente_GC1": "Si" if st.session_state.get("gc1_incident_active", False) else "No",
@@ -940,7 +1058,7 @@ with tab_lab:
             st.plotly_chart(fig_dag, use_container_width=True)
 
         elif "5. Mapa de Calor" in lab_section:
-            st.markdown("##### Matriz de Calor Temporal de Retrasos")
+            st.markdown("###### Matriz de Calor Temporal de Retrasos")
             st.caption("Patrón de demoras medias a lo largo de las 24 horas y los 7 días de la semana.")
             fig_heat = plot_delay_heatmap(df_ops)
             st.plotly_chart(fig_heat, use_container_width=True)
@@ -960,7 +1078,7 @@ with tab_lab:
         )
 
         if "Tema 1 & 3" in opt_section:
-            st.markdown("##### Asignación Óptima de Flota en Horas Punta (MILP / Simplex)")
+            st.markdown("###### Asignación Óptima de Flota en Horas Punta (MILP / Simplex)")
             st.caption("Minimiza costes operativos y penalizaciones por pasajeros en tierra mediante Programación Lineal Entera Mixta (MILP con solver HiGHS).")
 
             col_milp1, col_milp2 = st.columns([1, 1.4], gap="large")
@@ -973,7 +1091,7 @@ with tab_lab:
 
             with col_milp2:
                 st.markdown(f"""
-                <div class="global-card">
+                <div class="transit-card">
                     <div style="display: flex; justify-content: space-between;">
                         <span style="font-weight: 800; color: #00778b;">Estado del Solver: <b>{res_milp.status}</b></span>
                         <span class="pill pill-green">HiGHS MILP</span>
@@ -994,7 +1112,7 @@ with tab_lab:
             st.plotly_chart(fig_milp, use_container_width=True)
 
         elif "Tema 2" in opt_section:
-            st.markdown("##### Optimización Sin Restricciones: Descenso por Gradiente vs Newton")
+            st.markdown("###### Optimización Sin Restricciones: Descenso por Gradiente vs Newton")
             st.caption("Calibración de la función de coste de congestión vial BPR: $T(d, v/c) = T_0 + \\theta_1 d + \\theta_2 (v/c)^4$ comparando convergencia lineal vs cuadrática con matriz Hessiana $H(\\theta)$.")
 
             col_gd1, col_gd2 = st.columns([1, 1.4], gap="large")
@@ -1008,7 +1126,7 @@ with tab_lab:
 
             with col_gd2:
                 st.markdown(f"""
-                <div class="global-card">
+                <div class="transit-card">
                     <div style="font-weight: 800; color: #00778b;">Comparativa de Velocidad de Convergencia:</div>
                     <div style="margin-top: 6px; font-size: 0.85rem;">
                         <b>Descenso por Gradiente:</b> {res_gd.iterations} iters • Pérdida final: <code>{res_gd.final_loss:.4f}</code> (Tasa {res_gd.convergence_rate})<br/>
@@ -1024,14 +1142,14 @@ with tab_lab:
             st.plotly_chart(fig_conv, use_container_width=True)
 
         elif "Tema 3.2" in opt_section:
-            st.markdown("##### Multiplicadores de Lagrange: Reparto Óptimo de Frecuencias")
+            st.markdown("###### Multiplicadores de Lagrange: Reparto Óptimo de Frecuencias")
             st.caption("Maximiza la utilidad social $\\sum w_i \\ln(f_i)$ sujeta a la restricción presupuestaria de kilómetros $\\sum k_i f_i = B$.")
 
             budget_in = st.slider("Presupuesto insular total de kilómetros (B):", 400.0, 1200.0, 680.0, 40.0)
             res_lagrange = solve_lagrangian_frequency_allocation(total_budget_km=budget_in)
 
             st.markdown(f"""
-            <div class="global-card">
+            <div class="transit-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-size: 1.25rem; font-weight: 800; color: #00778b;">Multiplicador de Lagrange: λ* = {res_lagrange.lambda_multiplier:.4f}</div>
                     <span class="pill pill-teal">Gradiente Lagrangiano: ||∇L|| ≈ {res_lagrange.lagrangian_gradient_norm:.1e}</span>
@@ -1052,7 +1170,7 @@ with tab_lab:
                     st.metric(l_name.split(" (")[0], f"{f_val:.2f} exp/h")
 
         elif "Tema 4" in opt_section:
-            st.markdown("##### Metaheurísticas: Simulated Annealing vs Algoritmo Genético")
+            st.markdown("###### Metaheurísticas: Simulated Annealing vs Algoritmo Genético")
             st.caption("Optimización del circuito de inspección y recogida en paradas clave de Gran Canaria (Problema del Viajante de Comercio / TSP insular).")
 
             col_h1, col_h2 = st.columns([1, 1.4], gap="large")
@@ -1066,7 +1184,7 @@ with tab_lab:
 
             with col_h2:
                 st.markdown(f"""
-                <div class="global-card">
+                <div class="transit-card">
                     <div style="font-weight: 800; color: #00778b;">Resultados de Optimización Heurística de Ruta:</div>
                     <div style="font-size: 0.85rem; margin-top: 6px;">
                         <b>Circuito Inicial:</b> {res_sa.initial_distance_km:.1f} km<br/>
