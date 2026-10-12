@@ -1,24 +1,26 @@
-# 🚌 GlobalPulse | Plataforma Analítica y Motor Estadístico de Movilidad (Gran Canaria)
+# 🚌 CanariasPulse | Plataforma Analítica y Microapp Multimodal de Movilidad Canario-Insular
 
 > **Proyecto de Portfolio & CV** para el Grado en **Ciencia e Ingeniería de Datos** de la **Universidad de Las Palmas de Gran Canaria (ULPGC)**.
+> Red Unificada de Operadores: **Global (Gran Canaria)**, **TITSA (Tenerife)**, **Baleària**, **Fred. Olsen Express**, **Naviera Armas**, **Guaguas Municipales** y **Tranvía de Tenerife**.
 
 ![Python Version](https://img.shields.io/badge/Python-3.13-blue.svg)
-![Streamlit](https://img.shields.io/badge/Frontend-Streamlit%20%7C%20Pydeck-FF4B4B.svg)
+![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%7C%20Tailwind%20%7C%20Leaflet-FF4B4B.svg)
 ![Stats & ML](https://img.shields.io/badge/Stats-SciPy%20%7C%20Statsmodels%20%7C%20pgmpy-green.svg)
-![Data](https://img.shields.io/badge/Data-OpenStreetMap%20%7C%20Global%20(Salcai%20Utinsa)-orange.svg)
+![Coverage](https://img.shields.io/badge/Coverage-Gran%20Canaria%20%2B%20Tenerife%20%2B%20Mar%C3%ADtimo-orange.svg)
 
 ---
 
 ## 📌 1. Visión del Proyecto y Problema Real
 
-La movilidad en la isla de Gran Canaria representa uno de los mayores desafíos logísticos y de ingeniería del archipiélago:
-* Atascos recurrentes en la arteria principal de la isla (**Autopista del Sur GC-1** y **GC-2**).
-* Conexión crítica de transporte de pasajeros entre la capital (**Estación de San Telmo / Santa Catalina**), el **Aeropuerto de Gran Canaria (LPA)**, el **Campus Universitario de Tafira** y el polo turístico del sur (**Playa del Inglés, Maspalomas, Mogán**).
-* Líneas de orografía compleja con desniveles de más de 800 metros en medianías y cumbres (**Línea 303 a San Mateo**).
+La movilidad en el archipiélago canario representa uno de los mayores desafíos logísticos y de ingeniería del país:
+* Atascos recurrentes en las dos arterias insulares principales (**Autopista del Sur GC-1 / GC-2 en Gran Canaria** y **TF-5 / TF-1 en Tenerife**).
+* Fragmentación histórica de operadores: **Global** (interurbano GC), **TITSA** (interurbano Tenerife), **Guaguas Municipales** (Las Palmas), **Metrotenerife** (Tranvía), y navieras de conexión interinsular (**Baleària**, **Fred. Olsen Express**, **Naviera Armas**).
+* Saturación masiva tras la gratuidad del transporte con el **Bono Residente Canario (regla de los 15 viajes mensuales)**.
+* Desconexión entre los tiempos teóricos de llegada y la realidad del tráfico o mar de fondo en el canal interinsular.
 
-**GlobalPulse** moderniza por completo la experiencia de usuario y la toma de decisiones:
-1. **Cara al usuario / Móvil 2.0 ("El lavado de cara de Global")**: Una interfaz limpia, moderna y fiel a la identidad corporativa oficial de Global Salcai Utinsa (`#00778b` Teal, `#f2a900` Oro Canario, fondo blanco corporativo y tarjetas limpias). Integra las 6 funciones reales de la app móvil (Mapa GPS en vivo, Siguiente Parada por código de marquesina de 4 dígitos, ¿A dónde quieres ir? con Garantía de Llegada, Tarjetas & regla de 15 viajes de gratuidad en Canarias, Vendedor de tickets y Estado del Servicio).
-2. **Bajo el capó (Motor Matemático & Laboratorio TFG ULPGC)**: Todo el sistema está impulsado por **inferencia estadística rigurosa, modelos de regresión MCO con diagnósticos de Gauss-Markov, mezclas gaussianas (GMM), biplot PCA 2D y redes bayesianas causales con inferencia exacta (pgmpy)**.
+**CanariasPulse** moderniza por completo la experiencia de usuario y la toma de decisiones:
+1. **Cara al usuario / Microapp Unificada**: Interfaz ultraligera, responsiva y adaptable con mapa interactivo en tiempo real (Leaflet + OpenStreetMap), telemetría GPS multi-operador, planificador de viajes interinsulares, garantía de llegada bayesiana al 95% de confianza (HDI), y monitor del Bono Residente Canario de 15 viajes.
+2. **Bajo el capó (Motor Matemático & Laboratorio TFG ULPGC)**: Impulsado por **inferencia estadística rigurosa, modelos de regresión MCO con diagnósticos de Gauss-Markov, mezclas gaussianas (GMM), biplot PCA 2D, optimización MILP con HiGHS y redes bayesianas causales con inferencia exacta (pgmpy)**.
 
 ---
 
@@ -138,8 +140,28 @@ python -m pytest tests/
 ```
 
 ### 3. Lanzar la Aplicación Interactiva
+
+Dispones de dos modalidades de interfaz según el caso de uso:
+
+#### Opción A: Frontend Moderno de Alta Fidelidad (Recomendado - 60 FPS Citymapper / Apple Maps Feel)
+Ejecuta el servidor unificado FastAPI que sirve directamente la aplicación **React 19 + Tailwind CSS + Leaflet** con mapa interactivo a pantalla completa, drawer lateral flotante y microinteracciones:
+```bash
+python run_app.py
+```
+Se abrirá automáticamente en tu navegador en **`http://localhost:8000`** (con documentación interactiva Swagger API en `http://localhost:8000/docs`).
+
+Para desarrollo activo del frontend con Hot-Reload:
+```bash
+cd frontend
+npm run dev
+```
+(Acceso en `http://localhost:3000`).
+
+---
+
+#### Opción B: Cuadro de Mandos en Streamlit
+Si prefieres ejecutar el prototipo clásico en Streamlit:
 ```bash
 streamlit run src/dashboard/app.py
 ```
-
-La app se abrirá en tu navegador en `http://localhost:8501`, organizada en las 7 pestañas oficiales con estética corporativa de Global (Teal `#00778b`, Oro Canario `#f2a900`, tarjetas blancas y mapas viales en directo). En la pestaña **«🔬 Laboratorio de Datos (TFG ULPGC)»** puedes inspeccionar los diagnósticos de Gauss-Markov, el Biplot PCA 2D, las curvas bayesianas y el Grafo Causal DAG.
+(Acceso en `http://localhost:8501`).

@@ -1,0 +1,8 @@
+route_id,route_short_name,route_long_name,route_type,route_color
+FO_AGA_SCT,FO-1,Agaete <-> Santa Cruz de Tenerife (Fred. Olsen),4,0284C7
+BAL_LPA_SCT,BAL-1,Las Palmas <-> Santa Cruz de Tenerife (Baleària),4,008779
+ARM_LPA_SCT,ARM-1,Las Palmas <-> Santa Cruz de Tenerife (Naviera Armas),4,DC2626
+FO_CRIS_SSG,FO-2,Los Cristianos <-> San Sebastián (Fred. Olsen),4,0284C7
+FO_CRIS_SPC,FO-3,Los Cristianos <-> Santa Cruz de La Palma (Fred. Olsen),4,0284C7
+BAL_LPA_ACE,BAL-2,Las Palmas <-> Arrecife (Baleària),4,008779
+FO_COR_PB,FO-4,Corralejo <-> Playa Blanca (Fred. Olsen),4,0284C7

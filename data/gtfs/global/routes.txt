@@ -1,0 +1,8 @@
+route_id,route_short_name,route_long_name,route_type,route_color
+L01,01,Las Palmas (San Telmo) - Puerto de Mogán,3,00778B
+L30,30,Santa Catalina / San Telmo - Faro de Maspalomas (Directo),3,00778B
+L50,50,Las Palmas (San Telmo) - Faro de Maspalomas (Por Autopista),3,00778B
+L91,91,Las Palmas (San Telmo) - Puerto Rico / Mogán (Directo),3,00778B
+L303,303,Las Palmas (San Telmo) - Santa Brígida - San Mateo,3,00778B
+L103,103,Las Palmas (San Telmo) - Gáldar - Agaete (Puerto),3,00778B
+L12,12,Las Palmas (San Telmo) - Telde,3,00778B

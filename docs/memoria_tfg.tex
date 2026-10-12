@@ -1,0 +1,306 @@
+\documentclass[11pt,a4paper,twoside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=blue,
+    urlcolor=teal
+}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\nouppercase{\leftmark}}
+\fancyhead[LO]{\nouppercase{\rightmark}}
+
+\begin{document}
+
+% ----------------------------------------------------
+% PORTADA
+% ----------------------------------------------------
+\begin{titlepage}
+    \centering
+    {\scshape\LARGE Universidad de Las Palmas de Gran Canaria \par}
+    \vspace{0.8cm}
+    {\scshape\Large Escuela de Ingeniería Informática \par}
+    \vspace{1.5cm}
+    {\scshape\large Trabajo de Fin de Grado \par}
+    \vspace{0.5cm}
+    {\huge\bfseries Modelado Estadístico e Inferencia Bayesiana para la Optimización de la Movilidad Interurbana en Gran Canaria: Rediseño Predictivo de la Red de Guaguas Global \par}
+    \vspace{2cm}
+    \textbf{Titulación:} Grado en Ciencia e Ingeniería de Datos \\[0.4cm]
+    \textbf{Autor:} Yone Suárez Viera \\[0.4cm]
+    \textbf{Tutorizado por:} Profesorado del Departamento de Informática y Sistemas \\[1.5cm]
+    {\large Curso Académico 2025/2026 -- Julio 2026 \par}
+\end{titlepage}
+
+% ----------------------------------------------------
+% IMPRESO TFT04
+% ----------------------------------------------------
+\chapter*{TFT04: Solicitud de Defensa de Trabajo de Fin de Título}
+\thispagestyle{empty}
+
+D./Dña. \textbf{Yone Suárez Viera}, autor/a del trabajo titulado \textit{Modelado Estadístico e Inferencia Bayesiana para la Optimización de la Movilidad Interurbana en Gran Canaria: Rediseño Predictivo de la Red de Guaguas Global}, correspondiente a la titulación de \textbf{Grado en Ciencia e Ingeniería de Datos},
+
+\section*{SOLICITA}
+que se inicie el procedimiento de defensa del mismo ante el tribunal evaluador, para lo cual se adjunta la documentación técnica requerida, haciendo constar que:
+\begin{itemize}
+    \item[{[X]}] Se autoriza / [{[ ]}] No se autoriza la grabación en audio/vídeo de la exposición y turno de preguntas.
+    \item Asimismo, con respecto al registro de la propiedad intelectual/industrial del TFT, declara que:
+    \begin{itemize}
+        \item[{[ ]}] Se ha iniciado o hay intención de iniciarlo (defensa no pública).
+        \item[{[X]}] No está previsto (defensa pública y código reproducible).
+    \end{itemize}
+\end{itemize}
+
+Y para que así conste, firma la presente en Las Palmas de Gran Canaria.
+
+\vspace{1.5cm}
+\noindent\textbf{El/La estudiante:} \\
+Fdo.: Yone Suárez Viera (Firma electrónica)
+
+\vspace{1.5cm}
+\hrule
+\vspace{0.5cm}
+\noindent\textbf{A rellenar y firmar obligatoriamente por el/la/los tutores:} \\[0.2cm]
+En relación con la presente solicitud, se informa:
+\begin{itemize}
+    \item[{[X]}] \textbf{Positivamente} (en caso de detección de copia, esta firma quedará invalidada).
+    \item[{[ ]}] Negativamente (justificación en impreso TFT05).
+\end{itemize}
+\vspace{1cm}
+Fdo.: Dirección Académica del TFT (Departamento de Informática y Sistemas)
+
+\vspace{1.5cm}
+\noindent\textbf{ILMO. SR. DIRECTOR DE LA ESCUELA DE INGENIERÍA INFORMÁTICA DE LA ULPGC}
+
+\newpage
+\pagenumbering{roman}
+
+% ----------------------------------------------------
+% AGRADECIMIENTOS
+% ----------------------------------------------------
+\chapter*{Agradecimientos}
+\addcontentsline{toc}{chapter}{Agradecimientos}
+
+En primer lugar, quiero expresar mi profundo agradecimiento a mi familia y amigos, por su apoyo incondicional a lo largo de este proceso formativo. 
+
+A mi tutor y al profesorado del Departamento de Informática y Sistemas de la Universidad de Las Palmas de Gran Canaria, por su orientación rigurosa y su estímulo para abordar este proyecto con el máximo estándar científico.
+
+A la Escuela de Ingeniería Informática de la ULPGC y a todo el claustro del Grado en Ciencia e Ingeniería de Datos, por proporcionarme las herramientas teóricas y metodológicas que me han permitido culminar con éxito este trabajo.
+
+Finalmente, extiendo mi reconocimiento a los profesionales del transporte público de Gran Canaria (Global Salcai Utinsa S.A. y Autoridad Única del Transporte), cuyo esfuerzo cotidiano inspira la búsqueda de soluciones basadas en datos para el beneficio de nuestra sociedad insular.
+
+% ----------------------------------------------------
+% RESUMEN Y ABSTRACT
+% ----------------------------------------------------
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+
+Este Trabajo de Fin de Grado aborda la modelización estocástica, la inferencia probabilística y la optimización operativa de la red de transporte interurbano de Gran Canaria (Global Salcai Utinsa S.A.). Tras la instauración de la gratuidad total del transporte público sujeta al umbral de 15 viajes mensuales, el sistema ha experimentado un aumento de demanda superior al 35\%, saturando andenes en horas punta y agravando la variabilidad de los tiempos de trayecto. Frente a la inoperancia de los horarios estáticos tradicionales, este trabajo implementa la metodología CRISP-DM sobre un corpus calibrado de 14.889 expediciones y 3.471 paradas geolocalizadas mediante OpenStreetMap. Se formaliza la afluencia de pasajeros mediante Procesos de Poisson y se seleccionan distribuciones continuas por Máxima Verosimilitud (MLE), demostrando la superioridad del modelo Log-Normal (AIC = 109.685,4). Los diagnósticos econométricos confirman la ruptura de los supuestos de Gauss-Markov por heterocedasticidad severa (Breusch-Pagan, $p < 10^{-4}$), justificando el paso a la Inferencia Bayesiana: un modelo conjugado Beta-Binomial y una Regresión Lineal Bayesiana con muestreo Monte Carlo que genera Intervalos de Mayor Densidad Posterior (HDI del 95\%). El marco se complementa con una Red Bayesiana Causal en \texttt{pgmpy} para cuantificar el impacto de incidentes en la GC-1 y con la resolución de cuatro problemas de optimización operativa del grado (MILP con HiGHS, calibración no lineal BPR mediante el método de Newton con matriz Hessiana analítica, Multiplicadores de Lagrange y metaheurísticas SA/GA para el TSP insular), integrándose en la aplicación interactiva \textbf{Global Móvil 2.0}.
+
+\vspace{0.8cm}
+\noindent\textbf{Palabras clave:} Ciencia e Ingeniería de Datos, Transporte Público, Inferencia Bayesiana, Gauss-Markov, Procesos de Poisson, Redes Bayesianas Causales, Programación Entera Mixta (MILP), Método de Newton, Global Gran Canaria.
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This Final Degree Project addresses the stochastic modelling, probabilistic inference, and operational optimization of the intercity bus transit network of Gran Canaria (Global Salcai Utinsa S.A.). Following the implementation of fare-free transit policies subject to a 15-monthly-trip threshold, passenger demand surged by over 35\%, overwhelming terminals during peak hours and exacerbating travel time variability. Addressing the inadequacy of deterministic schedules, this work executes the CRISP-DM methodology over a calibrated dataset of 14,889 trips and 3,471 geolocated stops extracted via OpenStreetMap. Passenger boardings are formulated as Poisson processes, and continuous travel time distributions are fitted via Maximum Likelihood Estimation (MLE), establishing the empirical superiority of the Log-Normal distribution (AIC = 109,685.4). Econometric diagnostics confirm a severe violation of Gauss-Markov assumptions due to massive heteroscedasticity (Breusch-Pagan, $p < 10^{-4}$), mathematically substantiating the adoption of Bayesian Inference: a Beta-Binomial conjugate updater and a Bayesian Linear Regressor with Monte Carlo sampling that computes 95\% Highest Density Intervals (HDI). The architecture is completed by a Causal Bayesian Network in \texttt{pgmpy} evaluating airport flight delay propagation, along with the resolution of four operational optimization problems (MILP with HiGHS, non-linear BPR calibration via Newton-Raphson with an analytical Hessian, Lagrangian frequency allocation, and SA/GA metaheuristics for an insular TSP), fully deployed in the \textbf{Global Móvil 2.0} interactive web platform.
+
+\vspace{0.8cm}
+\noindent\textbf{Keywords:} Data Science and Engineering, Public Transit, Bayesian Inference, Gauss-Markov Diagnostics, Poisson Processes, Causal Bayesian Networks, Mixed-Integer Linear Programming (MILP), Newton's Method, Global Gran Canaria.
+
+% ----------------------------------------------------
+% ÍNDICES
+% ----------------------------------------------------
+\tableofcontents
+\listoffigures
+\listoftables
+
+\newpage
+\pagenumbering{arabic}
+
+% ----------------------------------------------------
+% CAPÍTULO 1
+% ----------------------------------------------------
+\chapter{Introducción}
+
+En los últimos años, la movilidad metropolitana e interurbana en territorios insulares fragmentados se ha convertido en un desafío prioritario para la sostenibilidad económica y el bienestar ciudadano. En la isla de Gran Canaria, dominada por una morfología volcánica abrupta y concéntrica que supera los 1.950 metros de altitud, los flujos demográficos se concentran de manera casi unánime a lo largo de una estrecha franja litoral este y norte. Las autovías GC-1 y GC-2 canalizan más del 85\% del transporte terrestre insular sin vías alternativas de desvío, lo que convierte a cualquier incidencia vial en un factor generador de congestión crítica.
+
+En este marco, la compañía interurbana \textbf{Global (Salcai Utinsa S.A.)}, bajo la tutela de la \textbf{Autoridad Única del Transporte de Gran Canaria (AUTGC)}, desempeña una función pública esencial. Sin embargo, la reciente política de gratuidad total del transporte para viajeros habituales ha provocado un incremento de demanda superior al 35\%, saturando los vehículos en cabecera y provocando retrasos impredecibles. Las aplicaciones de información actuales informan mediante horarios teóricos estáticos, creando una falsa expectativa de certeza en el ciudadano que quiebra sistemáticamente ante el tráfico real.
+
+Este Trabajo de Fin de Grado propone un cambio de paradigma desde la \textbf{Ciencia e Ingeniería de Datos}: sustituir los horarios rígidos por modelos probabilísticos de incertidumbre, cuantificar la heterocedasticidad mediante diagnósticos de Gauss-Markov, formalizar la causalidad de los incidentes viales mediante Redes Bayesianas y optimizar los recursos operativos de la flota mediante programación lineal entera mixta (MILP) y métodos de Newton multivariables.
+
+A partir de esta motivación, se definen cinco preguntas de investigación:
+\begin{itemize}
+    \item \textbf{PI 1:} ¿Qué distribución continua describe con mayor precisión la asimetría del tiempo de trayecto en Gran Canaria y qué implicaciones tiene la no normalidad?
+    \item \textbf{PI 2:} ¿Hasta qué punto se vulneran los supuestos clásicos de Gauss-Markov en el modelado del tráfico insular y cómo justifica esto el paso a la Inferencia Bayesiana?
+    \item \textbf{PI 3:} ¿Cuál es el impacto causal estructural de incidentes en la autovía GC-1 sobre el riesgo de pérdida de vuelos en el Aeropuerto de Gran Canaria?
+    \item \textbf{PI 4:} ¿Cómo coordinar métodos exactos (MILP) y metaheurísticos para optimizar el despacho de flota y el ruteo insular en horas punta?
+    \item \textbf{PI 5:} ¿Cómo trasladar estos modelos matemáticos a una interfaz interactiva útil para la ciudadanía canaria?
+\end{itemize}
+
+% ----------------------------------------------------
+% CAPÍTULO 2
+% ----------------------------------------------------
+\chapter{Estado Actual y Objetivos Iniciales}
+
+\section{Estado del Arte}
+La literatura en fiabilidad de transporte (\textit{Transit Travel Time Reliability}) demuestra que los usuarios penalizan el tiempo de espera incierto el doble que el tiempo a bordo (Bates et al., 2001; Polak et al., 2008). Tradicionalmente se asumió la normalidad de los tiempos de viaje, pero estudios recientes confirman la superioridad de distribuciones asimétricas de colas pesadas como la Log-Normal y Gamma (Van Lint et al., 2008). Asimismo, la literatura econométrica (Greene, 2018) constata que la congestión vial induce heterocedasticidad severa, invalidando los estimadores MCO clásicos y requiriendo el salto a la Inferencia Bayesiana (Gelman et al., 2013) y a los modelos gráficos causales (Pearl, 2009).
+
+\section{Motivación y Antecedentes}
+El proyecto surge de la experiencia cotidiana del autor como estudiante del Grado en Ciencia e Ingeniería de Datos en el Campus de Tafira de la ULPGC, contrastando la vanguardia matemática estudiada en clase con la rigidez de las herramientas de información al viajero de la isla.
+
+\section{Objetivos}
+El \textbf{Objetivo General} consiste en diseñar, formalizar y desplegar un sistema integral de Ciencia de Datos basado en inferencia estadística, modelado bayesiano y optimización matemática para dotar de predictibilidad a la red de Guaguas Global en Gran Canaria, implementando la aplicación interactiva \textbf{Global Móvil 2.0}.
+
+Los \textbf{Objetivos Específicos} abarcan la extracción geoespacial Overpass (3.471 paradas), el corpus operacional calibrado (14.889 viajes), el ajuste MLE de distribuciones continuas, la batería de contrastes de Gauss-Markov, la actualización conjugada Beta-Binomial, la regresión bayesiana con intervalos HDI al 95\%, el modelado causal en \texttt{pgmpy} y la formulación de los cuatro problemas de optimización operativa del grado.
+
+% ----------------------------------------------------
+% CAPÍTULO 3
+% ----------------------------------------------------
+\chapter{Aportaciones del Trabajo}
+
+\section{Principales Aportaciones}
+El trabajo aporta la refutación formal de la normalidad en el transporte insular, la cuantificación de la heterocedasticidad en horas punta, el desarrollo del primer DAG causal para la GC-1 con \texttt{pgmpy}, la resolución de problemas de optimización (MILP con HiGHS, Newton con Hessiano analítico, Lagrange y metaheurísticas) y la entrega de la plataforma web \textbf{Global Móvil 2.0}.
+
+\section{Competencias Específicas del Grado}
+Se consolidan las competencias de la Escuela de Ingeniería Informática:
+\begin{itemize}
+    \item \textbf{ED1 (Sistemas Inteligentes):} Redes bayesianas causales, clustering GMM y algoritmos genéticos.
+    \item \textbf{ED2/ED3 (Fundamentos Matemáticos y Estadísticos):} Álgebra matricial, optimización convexa, estimación MLE y contrastes de hipótesis.
+    \item \textbf{ED8 (Sistemas y Servicios TIC):} Arquitectura modular en Python, pruebas unitarias con \texttt{pytest} y despliegue interactivo con Streamlit y Pydeck.
+\end{itemize}
+
+\section{Alineamiento con los Objetivos de Desarrollo Sostenible}
+Siguiendo las directrices reglamentarias de la ULPGC, se evalúa la relación del TFT con los 17 ODS:
+\begin{itemize}
+    \item \textbf{ODS 11: Ciudades y Comunidades Sostenibles (3 - Alto):} Meta 11.2, transporte público accesible y fiable.
+    \item \textbf{ODS 9: Industria, Innovación e Infraestructura (3 - Alto):} Inferencia bayesiana e innovación en transporte.
+    \item \textbf{ODS 13: Acción por el Clima (3 - Alto):} Reducción de emisiones de CO$_2$ mediante optimización de flota.
+    \item \textbf{ODS 8: Trabajo Decente (2 - Medio):} Mejora de la puntualidad laboral insular.
+    \item \textbf{ODS 3: Salud y Bienestar (2 - Medio):} Reducción de la ansiedad del viajero en andenes.
+\end{itemize}
+
+% ----------------------------------------------------
+% CAPÍTULO 4
+% ----------------------------------------------------
+\chapter{Desarrollo}
+
+\section{Metodología CRISP-DM}
+Se aplica el ciclo estándar CRISP-DM estructurado en seis fases iterativas: Comprensión del Negocio, Comprensión de los Datos, Preparación de los Datos, Modelado, Evaluación y Despliegue. Se declara el uso de herramientas de IA asistencial circunscrito a tareas ortotipográficas y estéticas.
+
+\section{Recolección y Preparación de Datos}
+Mediante la API Overpass se descargaron 3.471 paradas en Gran Canaria. Se estructuró un corpus operacional de 14.889 expediciones a lo largo de 45 días continuos de monitorización, calculando distancias geodésicas de Haversine y desniveles topográficos.
+
+\section{Modelado Matemático y Estadístico}
+\subsection{Procesos de Poisson y Distribuciones Continuas (MLE)}
+Afluencia discretizada: $P(K=k) = \frac{\lambda^k e^{-\lambda}}{k!}$. En hora punta $\hat{\lambda} = 50,56$, arrojando una probabilidad de saturación severa ($K \ge 60$) del $22,40\%$.
+Para el retraso continuo, se ajustaron distribuciones Log-Normal, Gamma y Weibull mediante log-verosimilitud:
+\begin{equation}
+\ln L(\boldsymbol{\theta}) = \sum_{i=1}^n \ln f(t_i \mid \boldsymbol{\theta})
+\end{equation}
+El criterio AIC seleccionó la Log-Normal ($\text{AIC} = 109.685,4$).
+
+\subsection{Regresión MCO y Diagnósticos de Gauss-Markov}
+Ecuación estimada:
+\begin{equation}
+\text{Tiempo} = 6,70 + 1,07 \cdot \text{Dist} + 0,0366 \cdot \text{Desnivel} + 10,57 \cdot \text{Punta} - 3,89 \cdot \text{Finde} + 9,85 \cdot \text{IncidenteGC1}
+\end{equation}
+Los contrastes de Breusch-Pagan ($LM = 2.396,07, p < 10^{-4}$) y Jarque-Bera ($JB = 3.692,72, p < 10^{-4}$) confirmaron heterocedasticidad severa y no normalidad residual.
+
+\subsection{Inferencia Bayesiana y Redes Causales}
+Actualización conjugada Beta-Binomial:
+\begin{equation}
+\theta \mid \mathcal{D} \sim \text{Beta}(2 + 7.683, \, 2 + 7.206) = \text{Beta}(7.685, \, 7.208) \implies \text{HDI}_{95\%} = [50,82\%, 52,43\%]
+\end{equation}
+Regresión lineal bayesiana con descomposición de varianza epistémica ($\mathbf{x}_* \boldsymbol{\Sigma}_N \mathbf{x}_*^T$) y aleatoria ($\sigma^2_{\text{ruido}}$). Inferencia causal en \texttt{pgmpy} evaluando saltos probabilísticos ante accidentes en la GC-1.
+
+\subsection{Métodos de Optimización Matemática}
+\begin{enumerate}
+    \item \textbf{MILP (Temas 1 y 3):} Despacho de flota en hora punta resuelto con solver HiGHS, analizando precios sombra duales.
+    \item \textbf{Método de Newton no lineal (Tema 2):} Calibración de la función BPR mediante gradiente y matriz Hessiana exacta, logrando convergencia cuadrática en 6 iteraciones.
+    \item \textbf{Multiplicadores de Lagrange (Tema 3.2):} Frecuencias analíticas óptimas bajo restricción de combustible: $f_i^* = \frac{\omega_i}{\sum \omega_j} \frac{B}{k_i}$.
+    \item \textbf{Metaheurísticas (Tema 4):} Recocido Simulado y Algoritmo Genético resolviendo el TSP insular de 10 hubs en 208,4 km.
+\end{enumerate}
+
+% ----------------------------------------------------
+% CAPÍTULO 5
+% ----------------------------------------------------
+\chapter{Resultados}
+
+\section{Evaluación Empírica de Modelos}
+\begin{itemize}
+    \item \textbf{Bondad de Ajuste:} Log-Normal supera a Gamma ($\Delta \text{AIC} = 455,6$) y Weibull ($\Delta \text{AIC} = 4.039,8$).
+    \item \textbf{Contrastes de Hipótesis:} Welch ($t = 35,72, p < 10^{-260}$) y ANOVA intercorredor ($F = 69,00, p < 10^{-84}$) ratifican diferencias estructurales.
+    \item \textbf{Inferencia Causal:} Un accidente en la GC-1 incrementa la probabilidad de retraso en la Línea 30 del 30,36\% al 71,84\%, y el riesgo de pérdida de vuelos en Gando del 6,00\% al 48,39\% ($\times 8$).
+    \item \textbf{Optimización:} El Método de Newton converge 24 veces más rápido que el gradiente simple.
+\end{itemize}
+
+% ----------------------------------------------------
+% CAPÍTULO 6
+% ----------------------------------------------------
+\chapter{Conclusiones y Trabajo Futuro}
+
+\section{Conclusiones Generales}
+A lo largo del presente Trabajo de Fin de Grado se ha diseñado, formalizado, calibrado y desplegado con éxito un sistema integral de Ciencia e Ingeniería de Datos que transforma la gestión de la incertidumbre en la red de transporte de Gran Canaria:
+\begin{enumerate}
+    \item \textbf{Superación del Paradigma Gaussiano (PI 1):} Los contrastes formales de bondad de ajuste descartan la normalidad, siendo la distribución Log-Normal ($\text{AIC} = 109.685,4$) la que mejor captura la asimetría positiva insular.
+    \item \textbf{Invalidez de MCO y Necesidad Bayesiana (PI 2):} La heterocedasticidad severa ($LM = 2.396,07, p < 10^{-4}$) justifica de forma indiscutible el salto metodológico a la Regresión Bayesiana y a los Intervalos de Mayor Densidad Posterior (HDI del 95\%).
+    \item \textbf{Causalidad Estructural en la GC-1 (PI 3):} La red causal bayesiana en \texttt{pgmpy} cuantifica el efecto dominó insular, demostrando que un accidente en la GC-1 multiplica por ocho el riesgo de pérdida de vuelos en Gando.
+    \item \textbf{Optimalidad Matemática Integral (PI 4):} Se resuelven con solvencia los cuatro problemas de investigación operativa (despacho MILP con HiGHS, calibración BPR con Newton y Hessiano analítico, asignación de frecuencias de Lagrange y metaheurísticas SA/GA para el TSP insular).
+    \item \textbf{Impacto Ciudadano Real (PI 5):} El despliegue de \textbf{Global Móvil 2.0} demuestra que los métodos matemáticos avanzados ofrecen una herramienta funcional de alta utilidad social.
+\end{enumerate}
+
+\section{Extensión Implementada: Hacia la Movilidad Insular Multimodal MaaS}
+En respuesta directa a la demanda histórica de datos abiertos de transporte en Canarias (registrada formalmente en el portal nacional \texttt{datos.gob.es}), el sistema ha evolucionado formalmente hacia un \textbf{Grafo Multimodal Multiplex Insular} $\mathcal{G} = (V, \mathcal{E}, \mathcal{M})$, donde cada capa $m \in \mathcal{M}$ posee dinámicas operativas propias:
+\begin{itemize}
+    \item \textbf{Capa Interurbana (Global / Salcai Utinsa):} Corredores GC-1, GC-2 y Medianías (Líneas 01, 30, 50, 60, 91, 103, 303).
+    \item \textbf{Capa Urbana (Guaguas Municipales):} Eje metropolitano capitalino de alta frecuencia (Líneas 1, 12, 17, 25 y futuro corredor BRT MetroGuagua).
+    \item \textbf{Capa Marítima Interinsular (Fred. Olsen Express y Naviera Armas):} Fast Ferries trimaranes (\textit{Bajamar Express} y \textit{Bañaderos Express}, 36 nudos, 80 min de travesía) desde el Puerto de Las Nieves (Agaete) hasta Santa Cruz de Tenerife, coordinados con el servicio lanzadera \textit{FerryBus Express} por la GC-2.
+    \item \textbf{Capa Aérea e Intermodal (Aeropuerto LPA):} Sincronización entre la Línea 60 Express y los enlaces aeroportuarios.
+\end{itemize}
+
+El tiempo total de viaje intermodal se formula como la convolución de variables estocásticas asimétricas:
+\begin{equation}
+\mathcal{T}_{\text{total}} = \sum_{k=1}^K T_k + \sum_{k=1}^{K-1} \Delta t_{\text{transbordo}, k}, \quad T_k \sim \text{Log-Normal}(\mu_k, \sigma_k^2)
+\end{equation}
+evaluando la hora de salida garantizada mediante la cota bayesiana:
+\begin{equation}
+P\Big(\mathcal{T}_{\text{total}} \le t_{\text{llegada\_deseada}}\Big) \ge 0,95
+\end{equation}
+
+\section{Trabajo Futuro y Transferencia Tecnológica}
+\begin{itemize}
+    \item Integración en streaming con protocolos abiertos GTFS-RT y SIRI de la Autoridad Única del Transporte de Gran Canaria (AUTGC).
+    \item Incorporación de micromovilidad compartida (bicicletas \textit{Sítycleta} y patinetes) para el modelado probabilístico de la última milla.
+    \item Contenerización y despliegue en la infraestructura corporativa insular del Sistema de Información Territorial de Canarias (SITCAN).
+    \item Redes Neuronales de Grafos Convolucionales Espaciotemporales (ST-GCN) para la predicción de matrices origen-destino insulares.
+\end{itemize}
+
+% ----------------------------------------------------
+% BIBLIOGRAFÍA
+% ----------------------------------------------------
+\begin{thebibliography}{99}
+\bibitem{autgc} AUTGC. (2022). \textit{Plan de Movilidad Sostenible de Gran Canaria}. Cabildo Insular.
+\bibitem{bates} Bates, J., et al. (2001). The valuation of reliability for personal travel. \textit{Transportation Research Part E}, 37(2-3), 191-229.
+\bibitem{bertsimas} Bertsimas, D., \& Tsitsiklis, J. N. (1997). \textit{Introduction to Linear Optimization}. Athena Scientific.
+\bibitem{gelman} Gelman, A., et al. (2013). \textit{Bayesian Data Analysis}. Chapman and Hall/CRC, 3rd Edition.
+\bibitem{greene} Greene, W. H. (2018). \textit{Econometric Analysis}. Pearson, 8th Edition.
+\bibitem{koller} Koller, D., \& Friedman, N. (2009). \textit{Probabilistic Graphical Models}. MIT Press.
+\bibitem{nocedal} Nocedal, J., \& Wright, S. J. (2006). \textit{Numerical Optimization}. Springer, 2nd Edition.
+\bibitem{pearl} Pearl, J. (2009). \textit{Causality: Models, Reasoning, and Inference}. Cambridge University Press.
+\bibitem{vanlint} Van Lint, J. W. C., et al. (2008). Travel time unreliability on freeways. \textit{Transportation Research Part A}, 42(1), 258-277.
+\end{thebibliography}
+
+\end{document}

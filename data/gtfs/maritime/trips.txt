@@ -1,0 +1,19 @@
+trip_id,route_id,trip_headsign
+TR_FO_AGA_SCT_0,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_FO_AGA_SCT_1,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_FO_AGA_SCT_2,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_FO_AGA_SCT_3,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_FO_AGA_SCT_4,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_FO_AGA_SCT_5,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_FO_AGA_SCT_6,FO_AGA_SCT,Santa Cruz de Tenerife
+TR_BAL_LPA_SCT_0,BAL_LPA_SCT,Santa Cruz de Tenerife
+TR_BAL_LPA_SCT_1,BAL_LPA_SCT,Santa Cruz de Tenerife
+TR_BAL_LPA_SCT_2,BAL_LPA_SCT,Santa Cruz de Tenerife
+TR_BAL_LPA_SCT_3,BAL_LPA_SCT,Santa Cruz de Tenerife
+TR_ARM_LPA_SCT_0,ARM_LPA_SCT,Santa Cruz de Tenerife
+TR_ARM_LPA_SCT_1,ARM_LPA_SCT,Santa Cruz de Tenerife
+TR_ARM_LPA_SCT_2,ARM_LPA_SCT,Santa Cruz de Tenerife
+TR_FO_CRIS_SSG_0,FO_CRIS_SSG,San Sebastián de La Gomera
+TR_FO_CRIS_SSG_1,FO_CRIS_SSG,San Sebastián de La Gomera
+TR_FO_CRIS_SSG_2,FO_CRIS_SSG,San Sebastián de La Gomera
+TR_FO_CRIS_SSG_3,FO_CRIS_SSG,San Sebastián de La Gomera

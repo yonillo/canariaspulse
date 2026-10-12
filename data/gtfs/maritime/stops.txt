@@ -1,0 +1,11 @@
+stop_id,stop_name,stop_lat,stop_lon,zone_id
+PORT_SC_TENERIFE,Puerto de Santa Cruz de Tenerife (Muelle de Ribera),28.4682,-16.2444,Tenerife
+PORT_LOS_CRISTIANOS,Puerto de Los Cristianos (Tenerife Sur),28.0514,-16.7188,Tenerife
+PORT_AGAETE,Puerto de Las Nieves (Agaete),28.1011,-15.7102,Gran Canaria
+PORT_LA_LUZ,Puerto de La Luz (Las Palmas de Gran Canaria),28.1485,-15.4245,Gran Canaria
+PORT_MORRO_JABLE,Puerto de Morro Jable (Fuerteventura),28.0494,-14.3571,Fuerteventura
+PORT_CORRALEJO,Puerto de Corralejo (Fuerteventura),28.7392,-13.8672,Fuerteventura
+PORT_PLAYA_BLANCA,Puerto de Playa Blanca (Lanzarote),28.8631,-13.8324,Lanzarote
+PORT_SAN_SEBASTIAN,Puerto de San Sebastián de La Gomera,28.0908,-17.1085,La Gomera
+PORT_SANTA_CRUZ_PALMA,Puerto de Santa Cruz de La Palma,28.6755,-17.7663,La Palma
+PORT_VALVERDE_ESTACA,Puerto de La Estaca (El Hierro),27.7845,-17.9015,El Hierro

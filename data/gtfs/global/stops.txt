@@ -1,0 +1,20 @@
+stop_id,stop_name,stop_lat,stop_lon,zone_id
+GC_STELMO,Estación de Guaguas San Telmo (Las Palmas),28.1068,-15.4172,Capital
+GC_SCATALINA,Intercambiador Santa Catalina (Las Palmas),28.1408,-15.4298,Capital
+GC_HOYA_PLATA,Hoya de la Plata (Salida Sur),28.0772,-15.4189,Capital
+GC_JINAMAR,Cruce de Jinámar (GC-1),28.0286,-15.4125,Telde
+GC_TELDE_EST,Estación de Guaguas de Telde,27.9995,-15.419,Telde
+GC_AEROPUERTO,Aeropuerto de Gran Canaria (Llegadas),27.9348,-15.3882,Telde/Ingenio
+GC_ARINAGA,Cruce de Arinaga (GC-1),27.8762,-15.4195,Agüimes
+GC_VECINDARIO,C.C. Atlántico / Vecindario,27.8465,-15.4411,Santa Lucía
+GC_S_AGUSTIN,San Agustín (Clínica Roca),27.7695,-15.5392,San Bartolomé
+GC_PLAYA_INGLES,Playa del Inglés (Yumbo / Av. de Tirajana),27.7583,-15.5786,San Bartolomé
+GC_FARO_MASP,Estación Faro de Maspalomas,27.7356,-15.5997,San Bartolomé
+GC_PUERTO_RICO,Estación de Puerto Rico,27.7882,-15.7108,Mogán
+GC_MOGAN,Puerto de Mogán,27.8188,-15.7644,Mogán
+GC_TAFIRA_CAMPUS,Campus Universitario de Tafira (ULPGC),28.0722,-15.4542,Universidad
+GC_STA_BRIGIDA,Estación Santa Brígida,28.0336,-15.5005,Medianías
+GC_SAN_MATEO,Estación Vega de San Mateo,28.0094,-15.5322,Medianías
+GC_ARUCAS,Estación de Guaguas de Arucas,28.1189,-15.5236,Norte
+GC_GALDAR,Estación de Guaguas de Gáldar,28.1444,-15.6558,Norte
+GC_AGAETE,Puerto de Las Nieves (Agaete),28.1011,-15.7102,Norte

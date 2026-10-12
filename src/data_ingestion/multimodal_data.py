@@ -1,0 +1,1062 @@
+"""Catálogo Unificado Multimodal de Movilidad de Gran Canaria.
+
+Integra la totalidad del ecosistema de transporte público insular:
+1. GLOBAL (Transporte interurbano insular - 21 municipios)
+2. GUAGUAS MUNICIPALES (Transporte urbano de Las Palmas de Gran Canaria y MetroGuagua)
+3. FRED. OLSEN EXPRESS (Fast Ferry marítimo Agaete <-> Santa Cruz de Tenerife y Ferry Bus)
+4. NAVIERA ARMAS (Líneas marítimas regulares Las Palmas <-> Tenerife / Fuerteventura)
+5. AEROPUERTO DE GRAN CANARIA (GANDO - LPA) (Enlaces aéreos y lanzaderas)
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+import numpy as np
+
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+
+# ---------------------------------------------------------------------------
+# 1. OPERADORES OFICIALES
+# ---------------------------------------------------------------------------
+OPERATORS = {
+    "GLOBAL": {
+        "id": "GLOBAL",
+        "name": "Global (Salcai Utinsa)",
+        "type": "interurban_bus",
+        "color": "#00778b",
+        "badge": "Interurbano Insular",
+        "icon": "🚌",
+        "coverage": "21 Municipios de Gran Canaria",
+    },
+    "TITSA": {
+        "id": "TITSA",
+        "name": "TITSA (Transportes Interurbanos de Tenerife)",
+        "type": "interurban_bus",
+        "color": "#84cc16",
+        "badge": "Red Interurbana Tenerife",
+        "icon": "🟢",
+        "coverage": "Tenerife (Norte, Sur, Metropolitana, Cumbres)",
+    },
+    "METROTENERIFE": {
+        "id": "METROTENERIFE",
+        "name": "Tranvía de Tenerife (Metrotenerife)",
+        "type": "tram",
+        "color": "#ef4444",
+        "badge": "Tranvía Metropolitano",
+        "icon": "🚊",
+        "coverage": "Santa Cruz de Tenerife <-> La Laguna",
+    },
+    "GUAGUAS_MUNICIPALES": {
+        "id": "GUAGUAS_MUNICIPALES",
+        "name": "Guaguas Municipales",
+        "type": "urban_bus",
+        "color": "#f59e0b",
+        "badge": "Urbano Capital",
+        "icon": "🟡",
+        "coverage": "Las Palmas de Gran Canaria",
+    },
+    "BALEARIA": {
+        "id": "BALEARIA",
+        "name": "Baleària",
+        "type": "maritime_ferry",
+        "color": "#008779",
+        "badge": "Fast Ferry & Smart Ship GNL",
+        "icon": "🛳️",
+        "coverage": "Canarias Interinsular y Enlace Península",
+    },
+    "FRED_OLSEN": {
+        "id": "FRED_OLSEN",
+        "name": "Fred. Olsen Express",
+        "type": "maritime_ferry",
+        "color": "#0284c7",
+        "badge": "Fast Ferry Marítimo",
+        "icon": "⛴️",
+        "coverage": "Agaete <-> Tenerife / Fuerteventura",
+    },
+    "NAVIERA_ARMAS": {
+        "id": "NAVIERA_ARMAS",
+        "name": "Naviera Armas",
+        "type": "maritime_ferry",
+        "color": "#dc2626",
+        "badge": "Ferry Regular",
+        "icon": "🚢",
+        "coverage": "Puerto de La Luz <-> Tenerife / Lanzarote",
+    },
+    "AENA_AEROPUERTO": {
+        "id": "AENA_AEROPUERTO",
+        "name": "Aeropuertos Canarios (LPA / TFS / TFN)",
+        "type": "aviation",
+        "color": "#8b5cf6",
+        "badge": "Hub Aéreo Archipiélago",
+        "icon": "✈️",
+        "coverage": "Conexiones Interinsulares (Binter/Canaryfly)",
+    },
+}
+
+# ---------------------------------------------------------------------------
+# 2. NODOS INTERMODALES Y TERMINALES DE TRANSBORDO
+# ---------------------------------------------------------------------------
+MULTIMODAL_HUBS = {
+    # Capital
+    "SAN_TELMO": {
+        "id": "SAN_TELMO",
+        "name": "Estación de Guaguas San Telmo",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1068,
+        "lon": -15.4172,
+        "operators": ["GLOBAL", "GUAGUAS_MUNICIPALES"],
+        "transfers": ["Intercambiador Troncal", "Guaguas Urbanas", "Líneas Sur/Norte/Centro"],
+        "is_major_hub": True,
+    },
+    "SANTA_CATALINA": {
+        "id": "SANTA_CATALINA",
+        "name": "Intercambiador Santa Catalina",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1408,
+        "lon": -15.4298,
+        "operators": ["GLOBAL", "GUAGUAS_MUNICIPALES", "FRED_OLSEN"],
+        "transfers": ["Ferry Bus Fred Olsen", "Muelle Cruceros", "MetroGuagua", "Playa Las Canteras"],
+        "is_major_hub": True,
+    },
+    "HOYA_PLATA": {
+        "id": "HOYA_PLATA",
+        "name": "Intercambiador Hoya de la Plata",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.0772,
+        "lon": -15.4189,
+        "operators": ["GLOBAL", "GUAGUAS_MUNICIPALES"],
+        "transfers": ["Cabecera MetroGuagua", "Línea 12 Urbana", "Salida Autopista GC-1"],
+        "is_major_hub": True,
+    },
+    "MANUEL_BECERRA": {
+        "id": "MANUEL_BECERRA",
+        "name": "Plaza Manuel Becerra (Puerto)",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1550,
+        "lon": -15.4260,
+        "operators": ["GUAGUAS_MUNICIPALES"],
+        "transfers": ["Cabecera MetroGuagua", "Línea 1", "Línea 12", "La Isleta"],
+        "is_major_hub": False,
+    },
+    "TEATRO_TRIANA": {
+        "id": "TEATRO_TRIANA",
+        "name": "Teatro Pérez Galdós / Triana",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1030,
+        "lon": -15.4150,
+        "operators": ["GUAGUAS_MUNICIPALES"],
+        "transfers": ["Línea 1 Urbana", "Línea 17", "Zona Comercial Triana"],
+        "is_major_hub": False,
+    },
+    "AUDITORIO_KRAUS": {
+        "id": "AUDITORIO_KRAUS",
+        "name": "Auditorio Alfredo Kraus / Las Arenas",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1298,
+        "lon": -15.4475,
+        "operators": ["GUAGUAS_MUNICIPALES", "GLOBAL"],
+        "transfers": ["Línea 17 Urbana", "Línea 25", "Líneas Norte GC-2"],
+        "is_major_hub": False,
+    },
+    "CAMPUS_TAFIRA": {
+        "id": "CAMPUS_TAFIRA",
+        "name": "Campus Universitario de Tafira (ULPGC)",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.0722,
+        "lon": -15.4542,
+        "operators": ["GLOBAL", "GUAGUAS_MUNICIPALES"],
+        "transfers": ["Línea 25 Urbana", "Línea 26", "Línea 303 Global", "Ingenierías y Ciencias"],
+        "is_major_hub": True,
+    },
+    # Puertos Marítimos
+    "PUERTO_AGAETE": {
+        "id": "PUERTO_AGAETE",
+        "name": "Terminal Marítima Fred. Olsen (Puerto de Las Nieves)",
+        "locality": "Agaete",
+        "lat": 28.1011,
+        "lon": -15.7102,
+        "operators": ["FRED_OLSEN", "GLOBAL"],
+        "transfers": ["Fast Ferry a Tenerife (80 min)", "Línea 103 Global", "Ferry Bus Express"],
+        "is_major_hub": True,
+    },
+    "PUERTO_LA_LUZ": {
+        "id": "PUERTO_LA_LUZ",
+        "name": "Terminal Naviera Armas / La Luz",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1450,
+        "lon": -15.4180,
+        "operators": ["NAVIERA_ARMAS", "GUAGUAS_MUNICIPALES"],
+        "transfers": ["Ferries Tenerife / Lanzarote / Fuerteventura", "Línea 19 Urbana"],
+        "is_major_hub": True,
+    },
+    "TENERIFE_SANTA_CRUZ": {
+        "id": "TENERIFE_SANTA_CRUZ",
+        "name": "Muelle de Ribera (Santa Cruz de Tenerife)",
+        "locality": "Santa Cruz de Tenerife",
+        "lat": 28.4680,
+        "lon": -16.2435,
+        "operators": ["FRED_OLSEN", "NAVIERA_ARMAS"],
+        "transfers": ["Tranvía de Tenerife", "Intercambiador Santa Cruz", "TITSA"],
+        "is_major_hub": True,
+    },
+    "MORRO_JABLE": {
+        "id": "MORRO_JABLE",
+        "name": "Puerto de Morro Jable (Fuerteventura)",
+        "locality": "Pájara / Fuerteventura",
+        "lat": 28.0490,
+        "lon": -14.3540,
+        "operators": ["FRED_OLSEN", "NAVIERA_ARMAS"],
+        "transfers": ["Fast Ferry Fuerteventura (120 min)", "Tiadhe Bus"],
+        "is_major_hub": False,
+    },
+    # Aeropuerto
+    "AEROPUERTO_LPA": {
+        "id": "AEROPUERTO_LPA",
+        "name": "Aeropuerto de Gran Canaria (Gando - Llegadas/Salidas)",
+        "locality": "Telde / Ingenio",
+        "lat": 27.9348,
+        "lon": -15.3882,
+        "operators": ["AENA_AEROPUERTO", "GLOBAL"],
+        "transfers": ["Línea 60 Express San Telmo/Sta Catalina", "Línea 91", "Línea 30", "Vuelos Interinsulares"],
+        "is_major_hub": True,
+    },
+    # Sur y Medianías
+    "ESTACION_TELDE": {
+        "id": "ESTACION_TELDE",
+        "name": "Estación de Guaguas de Telde",
+        "locality": "Telde",
+        "lat": 27.9995,
+        "lon": -15.4190,
+        "operators": ["GLOBAL"],
+        "transfers": ["Líneas Cumbre y Costeras"],
+        "is_major_hub": True,
+    },
+    "FARO_MASPALOMAS": {
+        "id": "FARO_MASPALOMAS",
+        "name": "Estación Faro de Maspalomas",
+        "locality": "San Bartolomé de Tirajana",
+        "lat": 27.7356,
+        "lon": -15.5997,
+        "operators": ["GLOBAL"],
+        "transfers": ["Línea 30", "Línea 50 Directo", "Línea 01"],
+        "is_major_hub": True,
+    },
+    "PUERTO_MOGAN": {
+        "id": "PUERTO_MOGAN",
+        "name": "Puerto de Mogán (Estación)",
+        "locality": "Mogán",
+        "lat": 27.8188,
+        "lon": -15.7644,
+        "operators": ["GLOBAL"],
+        "transfers": ["Línea 01", "Línea 91", "Ferry Turístico Líneas Salmón"],
+        "is_major_hub": True,
+    },
+    "ESTACION_ARUCAS": {
+        "id": "ESTACION_ARUCAS",
+        "name": "Estación de Guaguas de Arucas",
+        "locality": "Arucas",
+        "lat": 28.1189,
+        "lon": -15.5236,
+        "operators": ["GLOBAL"],
+        "transfers": ["Líneas Comarca Norte"],
+        "is_major_hub": True,
+    },
+    "ESTACION_GALDAR": {
+        "id": "ESTACION_GALDAR",
+        "name": "Estación de Guaguas de Gáldar",
+        "locality": "Gáldar",
+        "lat": 28.1444,
+        "lon": -15.6558,
+        "operators": ["GLOBAL"],
+        "transfers": ["Línea 103", "Línea 105"],
+        "is_major_hub": True,
+    },
+    "ESTACION_SAN_MATEO": {
+        "id": "ESTACION_SAN_MATEO",
+        "name": "Estación Vega de San Mateo",
+        "locality": "Vega de San Mateo",
+        "lat": 28.0094,
+        "lon": -15.5322,
+        "operators": ["GLOBAL"],
+        "transfers": ["Línea 303", "Líneas Cumbre Tejeda"],
+        "is_major_hub": True,
+    },
+    # --- TENERIFE HUBS (TITSA & METROTENERIFE) ---
+    "INTERCAMBIADOR_SANTA_CRUZ": {
+        "id": "INTERCAMBIADOR_SANTA_CRUZ",
+        "name": "Intercambiador de Santa Cruz de Tenerife",
+        "locality": "Santa Cruz de Tenerife",
+        "lat": 28.4589,
+        "lon": -16.2570,
+        "operators": ["TITSA", "METROTENERIFE", "FRED_OLSEN", "BALEARIA"],
+        "transfers": ["Líneas Sur 110/111", "Líneas Norte 102/103", "Tranvía L1", "Lanzaderas Portuarias"],
+        "is_major_hub": True,
+    },
+    "INTERCAMBIADOR_LA_LAGUNA": {
+        "id": "INTERCAMBIADOR_LA_LAGUNA",
+        "name": "Intercambiador de La Laguna (Padre Anchieta)",
+        "locality": "San Cristóbal de La Laguna",
+        "lat": 28.4815,
+        "lon": -16.3142,
+        "operators": ["TITSA", "METROTENERIFE"],
+        "transfers": ["Campus Central ULL / Guajara", "Línea 014", "Línea 015 Exprés TF-5", "Tranvía L1"],
+        "is_major_hub": True,
+    },
+    "ESTACION_COSTA_ADEJE": {
+        "id": "ESTACION_COSTA_ADEJE",
+        "name": "Estación Costa Adeje / Los Cristianos",
+        "locality": "Adeje / Arona (Tenerife Sur)",
+        "lat": 28.0706,
+        "lon": -16.7290,
+        "operators": ["TITSA", "FRED_OLSEN", "BALEARIA"],
+        "transfers": ["Línea 110 Directo TF-1", "Línea 111 Aeropuerto TFS", "Línea 343 Norte-Sur"],
+        "is_major_hub": True,
+    },
+    "ESTACION_PUERTO_CRUZ": {
+        "id": "ESTACION_PUERTO_CRUZ",
+        "name": "Estación de Guaguas del Puerto de la Cruz",
+        "locality": "Puerto de la Cruz (Tenerife Norte)",
+        "lat": 28.4140,
+        "lon": -16.5510,
+        "operators": ["TITSA"],
+        "transfers": ["Línea 102 Exprés TF-5", "Línea 103 Directo", "Línea 343 Los Cristianos"],
+        "is_major_hub": True,
+    },
+    "AEROPUERTO_TFS": {
+        "id": "AEROPUERTO_TFS",
+        "name": "Aeropuerto Tenerife Sur (Reina Sofía - TFS)",
+        "locality": "Granadilla de Abona",
+        "lat": 28.0445,
+        "lon": -16.5725,
+        "operators": ["TITSA", "AENA_AEROPUERTO"],
+        "transfers": ["Línea 111 AeroSur", "Línea 40 Exprés", "Línea 343 Puerto Cruz"],
+        "is_major_hub": True,
+    },
+    "AEROPUERTO_TFN": {
+        "id": "AEROPUERTO_TFN",
+        "name": "Aeropuerto Tenerife Norte (Los Rodeos - TFN)",
+        "locality": "San Cristóbal de La Laguna",
+        "lat": 28.4827,
+        "lon": -16.3415,
+        "operators": ["TITSA", "AENA_AEROPUERTO"],
+        "transfers": ["Línea 20 Exprés Intercambiador", "Línea 102", "Línea 30"],
+        "is_major_hub": True,
+    },
+    "TERMINAL_BALEARIA_LPA": {
+        "id": "TERMINAL_BALEARIA_LPA",
+        "name": "Terminal Baleària (Muelle Grande / La Luz)",
+        "locality": "Las Palmas de Gran Canaria",
+        "lat": 28.1480,
+        "lon": -15.4195,
+        "operators": ["BALEARIA", "GUAGUAS_MUNICIPALES"],
+        "transfers": ["Smart Ships Baleària a Tenerife y Península", "Línea 19 Guaguas Muni"],
+        "is_major_hub": True,
+    },
+    "TERMINAL_BALEARIA_TFE": {
+        "id": "TERMINAL_BALEARIA_TFE",
+        "name": "Terminal Baleària (Dársena de Anaga / Santa Cruz)",
+        "locality": "Santa Cruz de Tenerife",
+        "lat": 28.4710,
+        "lon": -16.2410,
+        "operators": ["BALEARIA", "TITSA"],
+        "transfers": ["Fast Ferry a Las Palmas", "Lanzadera Intercambiador Santa Cruz"],
+        "is_major_hub": True,
+    },
+}
+
+# Normalizar stop_id canónico en todos los nodos multimodales
+_canonical_stop_id_map = {
+    "SAN_TELMO": "GC_STELMO",
+    "CAMPUS_TAFIRA": "GC_TAFIRA_CAMPUS",
+    "SANTA_CATALINA": "GC_SCATALINA",
+    "FARO_MASPALOMAS": "GC_FARO_MASP",
+    "AEROPUERTO_LPA": "GC_AEROPUERTO",
+    "PUERTO_AGAETE": "GC_AGAETE",
+    "ESTACION_TELDE": "GC_TELDE_EST",
+    "PUERTO_MOGAN": "GC_MOGAN",
+    "ESTACION_ARUCAS": "GC_ARUCAS",
+    "ESTACION_GALDAR": "GC_GALDAR",
+    "ESTACION_SAN_MATEO": "GC_SAN_MATEO",
+    "INTERCAMBIADOR_SANTA_CRUZ": "TF_INTER_SC",
+    "INTERCAMBIADOR_LA_LAGUNA": "TF_ANCHIETA",
+    "ESTACION_COSTA_ADEJE": "TF_ADEJE",
+    "ESTACION_PUERTO_CRUZ": "TF_PTO_CRUZ",
+    "AEROPUERTO_TFS": "TF_AEROPUERTO_SUR",
+    "AEROPUERTO_TFN": "TF_AEROPUERTO_NORTE",
+    "TERMINAL_BALEARIA_LPA": "GC_BALEARIA_LPA",
+    "TERMINAL_BALEARIA_TFE": "TF_BALEARIA_TFE",
+}
+for _k, _v in MULTIMODAL_HUBS.items():
+    _v["stop_id"] = _canonical_stop_id_map.get(_k, _v.get("id", _k))
+
+# ---------------------------------------------------------------------------
+# 3. LÍNEAS MULTIMODALES COMPLETAS (GLOBAL + GUAGUAS MUNI + FRED OLSEN + ARMAS)
+# ---------------------------------------------------------------------------
+MULTIMODAL_LINES = [
+    # --- FRED. OLSEN EXPRESS (Marítimo) ---
+    {
+        "line_id": "FO_AGAETE_SC",
+        "short_name": "FO-01",
+        "operator": "FRED_OLSEN",
+        "name": "Fast Ferry Agaete - Santa Cruz de Tenerife",
+        "mode": "maritime",
+        "corridor": "Canal Interinsular Gran Canaria - Tenerife",
+        "vessel_names": ["Bajamar Express", "Bañaderos Express"],
+        "speed_knots": 36,
+        "duration_min": 80,
+        "color": "#0284c7",
+        "is_express": True,
+        "headway_min": 120,
+        "checkin_cutoff_min": 15,
+        "polyline": [
+            [28.1011, -15.7102],  # Puerto de Las Nieves (Agaete)
+            [28.1500, -15.8200],  # Salida bahía
+            [28.2400, -15.9800],  # Medio del canal
+            [28.3500, -16.1200],  # Aproximación a Anaga
+            [28.4680, -16.2435],  # Muelle de Ribera (Santa Cruz de Tenerife)
+        ],
+    },
+    {
+        "line_id": "FO_FERRYBUS",
+        "short_name": "FerryBus",
+        "operator": "FRED_OLSEN",
+        "name": "FerryBus Express Santa Catalina - Puerto de Las Nieves",
+        "mode": "bus_transfer",
+        "corridor": "Autovía del Norte GC-2 Directo",
+        "duration_min": 30,
+        "color": "#0369a1",
+        "is_express": True,
+        "headway_min": 120,
+        "polyline": [
+            [28.1408, -15.4298],
+            [28.1350, -15.4500],
+            [28.1444, -15.6558],
+            [28.1011, -15.7102],
+        ],
+    },
+    {
+        "line_id": "FO_LPA_MORRO",
+        "short_name": "FO-02",
+        "operator": "FRED_OLSEN",
+        "name": "Fast Ferry Las Palmas - Morro Jable (Fuerteventura)",
+        "mode": "maritime",
+        "corridor": "Canal Gran Canaria - Fuerteventura",
+        "vessel_names": ["Betancuria Express"],
+        "speed_knots": 34,
+        "duration_min": 120,
+        "color": "#0ea5e9",
+        "is_express": True,
+        "headway_min": 240,
+        "polyline": [
+            [28.1408, -15.4245],
+            [28.1600, -15.3500],
+            [28.1000, -14.8500],
+            [28.0490, -14.3540],
+        ],
+    },
+    # --- NAVIERA ARMAS (Marítimo Regular) ---
+    {
+        "line_id": "ARMAS_LPA_SC",
+        "short_name": "ARMAS-01",
+        "operator": "NAVIERA_ARMAS",
+        "name": "Ferry Puerto de La Luz - Santa Cruz de Tenerife",
+        "mode": "maritime",
+        "corridor": "Travesía Central Marítima",
+        "vessel_names": ["Volcán de Tagoro", "Volcán de Taidia"],
+        "speed_knots": 32,
+        "duration_min": 100,
+        "color": "#dc2626",
+        "is_express": False,
+        "headway_min": 180,
+        "polyline": [
+            [28.1450, -15.4180],
+            [28.2200, -15.4800],
+            [28.3200, -15.8500],
+            [28.4680, -16.2435],
+        ],
+    },
+    # --- GUAGUAS MUNICIPALES (Urbano Capital) ---
+    {
+        "line_id": "GM_01",
+        "short_name": "01",
+        "operator": "GUAGUAS_MUNICIPALES",
+        "name": "Teatro - Puerto (Por Ciudad Baja)",
+        "mode": "urban_bus",
+        "corridor": "Eje Histórico y Comercial de Las Palmas GC",
+        "duration_min": 28,
+        "color": "#f59e0b",
+        "is_express": False,
+        "headway_min": 8,
+        "polyline": [
+            [28.1030, -15.4150],  # Teatro
+            [28.1068, -15.4172],  # San Telmo
+            [28.1210, -15.4230],  # Alcaravaneras
+            [28.1408, -15.4298],  # Santa Catalina
+            [28.1550, -15.4260],  # Manuel Becerra
+        ],
+    },
+    {
+        "line_id": "GM_12",
+        "short_name": "12",
+        "operator": "GUAGUAS_MUNICIPALES",
+        "name": "Hoya de la Plata - Puerto (Por Vía Rápida Marítima)",
+        "mode": "urban_bus",
+        "corridor": "Avenida Marítima de Las Palmas GC",
+        "duration_min": 22,
+        "color": "#d97706",
+        "is_express": True,
+        "headway_min": 6,
+        "polyline": [
+            [28.0772, -15.4189],  # Hoya de la Plata
+            [28.1068, -15.4172],  # San Telmo
+            [28.1320, -15.4250],  # Base Naval
+            [28.1408, -15.4298],  # Santa Catalina
+            [28.1550, -15.4260],  # Manuel Becerra
+        ],
+    },
+    {
+        "line_id": "GM_25",
+        "short_name": "25",
+        "operator": "GUAGUAS_MUNICIPALES",
+        "name": "Auditorio - Campus de Tafira (ULPGC)",
+        "mode": "urban_bus",
+        "corridor": "Conexión Universidad - Mesa y López",
+        "duration_min": 32,
+        "color": "#eab308",
+        "is_express": False,
+        "headway_min": 15,
+        "polyline": [
+            [28.1298, -15.4475],  # Auditorio
+            [28.1330, -15.4340],  # Mesa y López
+            [28.1068, -15.4172],  # San Telmo
+            [28.0850, -15.4350],  # El Batán
+            [28.0722, -15.4542],  # Campus Tafira
+        ],
+    },
+    {
+        "line_id": "GM_METROGUAGUA",
+        "short_name": "MG",
+        "operator": "GUAGUAS_MUNICIPALES",
+        "name": "MetroGuagua (BRT de Alta Capacidad)",
+        "mode": "brt",
+        "corridor": "Plataforma Segregada Exclusiva Sur-Norte",
+        "duration_min": 18,
+        "color": "#b45309",
+        "is_express": True,
+        "headway_min": 4,
+        "polyline": [
+            [28.0772, -15.4189],
+            [28.0920, -15.4160],
+            [28.1068, -15.4172],
+            [28.1250, -15.4240],
+            [28.1408, -15.4298],
+            [28.1550, -15.4260],
+        ],
+    },
+    # --- GLOBAL (Interurbano Insular) ---
+    {
+        "line_id": "L01",
+        "short_name": "01",
+        "operator": "GLOBAL",
+        "name": "Las Palmas (San Telmo) - Puerto de Mogán",
+        "mode": "interurban_bus",
+        "corridor": "Sur - Costa",
+        "duration_min": 95,
+        "color": "#00778b",
+        "is_express": False,
+        "headway_min": 20,
+        "polyline": [
+            [28.1068, -15.4172],
+            [28.0772, -15.4189],
+            [27.9348, -15.3882],
+            [27.8465, -15.4411],
+            [27.7583, -15.5786],
+            [27.7356, -15.5997],
+            [27.8188, -15.7644],
+        ],
+    },
+    {
+        "line_id": "L30",
+        "short_name": "30",
+        "operator": "GLOBAL",
+        "name": "Santa Catalina / San Telmo - Faro de Maspalomas (Directo)",
+        "mode": "interurban_bus",
+        "corridor": "Sur - Exprés Turístico",
+        "duration_min": 55,
+        "color": "#0284c7",
+        "is_express": True,
+        "headway_min": 15,
+        "polyline": [
+            [28.1408, -15.4298],
+            [28.1068, -15.4172],
+            [27.9348, -15.3882],
+            [27.7695, -15.5392],
+            [27.7583, -15.5786],
+            [27.7356, -15.5997],
+        ],
+    },
+    {
+        "line_id": "L60",
+        "short_name": "60",
+        "operator": "GLOBAL",
+        "name": "Las Palmas (San Telmo / Sta Catalina) - Aeropuerto Express",
+        "mode": "airport_express",
+        "corridor": "Autovía GC-1 Conexión Aérea",
+        "duration_min": 25,
+        "color": "#8b5cf6",
+        "is_express": True,
+        "headway_min": 30,
+        "polyline": [
+            [28.1408, -15.4298],
+            [28.1068, -15.4172],
+            [28.0772, -15.4189],
+            [27.9348, -15.3882],
+        ],
+    },
+    {
+        "line_id": "L103",
+        "short_name": "103",
+        "operator": "GLOBAL",
+        "name": "Las Palmas (San Telmo) - Gáldar - Agaete (Puerto)",
+        "mode": "interurban_bus",
+        "corridor": "Norte - Autovía GC-2 Enlace Ferry",
+        "duration_min": 52,
+        "color": "#0d9488",
+        "is_express": False,
+        "headway_min": 30,
+        "polyline": [
+            [28.1068, -15.4172],
+            [28.1189, -15.5236],
+            [28.1444, -15.6558],
+            [28.1011, -15.7102],
+        ],
+    },
+    {
+        "line_id": "L303",
+        "short_name": "303",
+        "operator": "GLOBAL",
+        "name": "Las Palmas (San Telmo) - Campus Tafira - San Mateo",
+        "mode": "interurban_bus",
+        "corridor": "Centro - Medianías / Universidad",
+        "duration_min": 48,
+        "color": "#10b981",
+        "is_express": False,
+        "headway_min": 20,
+        "polyline": [
+            [28.1068, -15.4172],
+            [28.0722, -15.4542],
+            [28.0336, -15.5005],
+            [28.0094, -15.5322],
+        ],
+    },
+    {
+        "line_id": "L50",
+        "short_name": "50",
+        "operator": "GLOBAL",
+        "name": "Las Palmas (San Telmo) - Faro de Maspalomas (Directo GC-1)",
+        "mode": "interurban_bus",
+        "corridor": "Sur - Autopista GC-1 Directo",
+        "duration_min": 45,
+        "color": "#0284c7",
+        "is_express": True,
+        "headway_min": 30,
+        "polyline": [
+            [28.1068, -15.4172],
+            [28.0772, -15.4189],
+            [27.9348, -15.3882],
+            [27.8465, -15.4411],
+            [27.7356, -15.5997],
+        ],
+    },
+    {
+        "line_id": "L91",
+        "short_name": "91",
+        "operator": "GLOBAL",
+        "name": "Las Palmas (San Telmo) - Aeropuerto - Puerto Rico - Puerto Mogán",
+        "mode": "interurban_bus",
+        "corridor": "Sur - Conexión Costera Rápida",
+        "duration_min": 70,
+        "color": "#00778b",
+        "is_express": True,
+        "headway_min": 30,
+        "polyline": [
+            [28.1068, -15.4172],
+            [27.9348, -15.3882],
+            [27.7850, -15.7100],
+            [27.8188, -15.7644],
+        ],
+    },
+    # --- BALEÀRIA (Fast Ferry & Smart Ship GNL) ---
+    {
+        "line_id": "BAL_01",
+        "short_name": "BAL-01",
+        "operator": "BALEARIA",
+        "name": "Fast Ferry & Smart Ship Baleària Las Palmas <-> Santa Cruz de Tenerife",
+        "mode": "maritime",
+        "corridor": "Canal Interinsular Gran Canaria - Tenerife",
+        "vessel_names": ["Marie Curie (GNL)", "Cecilia Payne"],
+        "speed_knots": 35,
+        "duration_min": 85,
+        "color": "#008779",
+        "is_express": True,
+        "headway_min": 180,
+        "checkin_cutoff_min": 20,
+        "polyline": [
+            [28.1480, -15.4195],  # Terminal Baleària Muelle La Luz
+            [28.2100, -15.5200],
+            [28.3100, -15.8600],
+            [28.4710, -16.2410],  # Dársena de Anaga (Santa Cruz de Tenerife)
+        ],
+    },
+    # --- TITSA (Transportes Interurbanos de Tenerife) ---
+    {
+        "line_id": "TITSA_014",
+        "short_name": "014",
+        "operator": "TITSA",
+        "name": "Santa Cruz (Intercambiador) - La Laguna (Padre Anchieta)",
+        "mode": "interurban_bus",
+        "corridor": "Troncal Metropolitano por Carretera General",
+        "duration_min": 30,
+        "color": "#84cc16",
+        "is_express": False,
+        "headway_min": 10,
+        "polyline": [
+            [28.4589, -16.2570],
+            [28.4650, -16.2750],
+            [28.4720, -16.2950],
+            [28.4815, -16.3142],
+        ],
+    },
+    {
+        "line_id": "TITSA_015",
+        "short_name": "015",
+        "operator": "TITSA",
+        "name": "Santa Cruz - La Laguna Exprés (Por Autopista TF-5)",
+        "mode": "interurban_bus",
+        "corridor": "Autopista del Norte TF-5 Exprés",
+        "duration_min": 16,
+        "color": "#65a30d",
+        "is_express": True,
+        "headway_min": 12,
+        "polyline": [
+            [28.4589, -16.2570],
+            [28.4680, -16.2800],
+            [28.4750, -16.3050],
+            [28.4815, -16.3142],
+        ],
+    },
+    {
+        "line_id": "TITSA_110",
+        "short_name": "110",
+        "operator": "TITSA",
+        "name": "Santa Cruz - Costa Adeje / Los Cristianos (Directo TF-1)",
+        "mode": "interurban_bus",
+        "corridor": "Autopista del Sur TF-1 Exprés",
+        "duration_min": 55,
+        "color": "#4d7c0f",
+        "is_express": True,
+        "headway_min": 20,
+        "polyline": [
+            [28.4589, -16.2570],
+            [28.3200, -16.3800],
+            [28.1800, -16.4800],
+            [28.0706, -16.7290],
+        ],
+    },
+    {
+        "line_id": "TITSA_111",
+        "short_name": "111",
+        "operator": "TITSA",
+        "name": "Santa Cruz - Aeropuerto Reina Sofía (TFS) - Costa Adeje",
+        "mode": "interurban_bus",
+        "corridor": "Autopista del Sur TF-1 Conexión Aérea",
+        "duration_min": 75,
+        "color": "#84cc16",
+        "is_express": False,
+        "headway_min": 30,
+        "polyline": [
+            [28.4589, -16.2570],
+            [28.2500, -16.4200],
+            [28.0445, -16.5725],
+            [28.0706, -16.7290],
+        ],
+    },
+    {
+        "line_id": "TITSA_102",
+        "short_name": "102",
+        "operator": "TITSA",
+        "name": "Santa Cruz - La Laguna - Aeropuerto Norte - Puerto de la Cruz",
+        "mode": "interurban_bus",
+        "corridor": "Autopista del Norte TF-5 Corredor Turístico",
+        "duration_min": 45,
+        "color": "#a3e635",
+        "is_express": True,
+        "headway_min": 30,
+        "polyline": [
+            [28.4589, -16.2570],
+            [28.4815, -16.3142],
+            [28.4827, -16.3415],
+            [28.4140, -16.5510],
+        ],
+    },
+    {
+        "line_id": "TITSA_343",
+        "short_name": "343",
+        "operator": "TITSA",
+        "name": "Puerto de la Cruz - Costa Adeje Exprés (Conexión Norte-Sur)",
+        "mode": "interurban_bus",
+        "corridor": "Interconexión Insular Tenerife TF-5 / TF-1",
+        "duration_min": 90,
+        "color": "#3f6212",
+        "is_express": True,
+        "headway_min": 60,
+        "polyline": [
+            [28.4140, -16.5510],
+            [28.4815, -16.3142],
+            [28.0445, -16.5725],
+            [28.0706, -16.7290],
+        ],
+    },
+    # --- METROTENERIFE (Tranvía de Tenerife) ---
+    {
+        "line_id": "TRANVIA_L1",
+        "short_name": "T1",
+        "operator": "METROTENERIFE",
+        "name": "Tranvía Línea 1 (Intercambiador Santa Cruz - La Trinidad La Laguna)",
+        "mode": "tram",
+        "corridor": "Eje Metropolitano Santa Cruz - La Laguna",
+        "duration_min": 37,
+        "color": "#ef4444",
+        "is_express": False,
+        "headway_min": 5,
+        "polyline": [
+            [28.4589, -16.2570],
+            [28.4635, -16.2620],
+            [28.4680, -16.2730],
+            [28.4720, -16.2910],
+            [28.4780, -16.3110],
+            [28.4850, -16.3180],
+        ],
+    },
+]
+
+# ---------------------------------------------------------------------------
+# 4. SIMULACIÓN DE FLOTA MULTIMODAL EN VIVO (GUAGUAS + FERRIES + VUELOS)
+# ---------------------------------------------------------------------------
+def get_live_multimodal_fleet() -> List[Dict[str, Any]]:
+    """Genera la telemetría en tiempo real de todas las unidades operativas de la isla."""
+    fleet = []
+    
+    # 1. Ferries de Fred. Olsen cruzando el canal
+    # Buque 1: Bajamar Express navegando hacia Tenerife (en medio del canal)
+    fleet.append({
+        "id": "VESSEL_FO_01",
+        "label": "Bajamar Express (Fred. Olsen)",
+        "mode": "maritime",
+        "operator": "FRED_OLSEN",
+        "operator_name": "Fred. Olsen Express",
+        "line": "FO-01",
+        "destination": "Santa Cruz de Tenerife",
+        "origin": "Puerto de Las Nieves (Agaete)",
+        "lat": 28.2150,
+        "lon": -15.9200,
+        "speed_kmh": 66.7,  # ~36 nudos
+        "course_deg": 305,
+        "occupancy_rate": 0.72,
+        "capacity": 1100,
+        "passengers": 792,
+        "status": "En navegación (36 kts)",
+        "eta": "16:20",
+        "badge_color": "#0284c7",
+        "icon": "⛴️",
+    })
+    
+    # Buque 2: Bañaderos Express atracando en Agaete
+    fleet.append({
+        "id": "VESSEL_FO_02",
+        "label": "Bañaderos Express (Fred. Olsen)",
+        "mode": "maritime",
+        "operator": "FRED_OLSEN",
+        "operator_name": "Fred. Olsen Express",
+        "line": "FO-01",
+        "destination": "Puerto de Las Nieves (Agaete)",
+        "origin": "Santa Cruz de Tenerife",
+        "lat": 28.1120,
+        "lon": -15.7350,
+        "speed_kmh": 22.0,
+        "course_deg": 125,
+        "occupancy_rate": 0.64,
+        "capacity": 1100,
+        "passengers": 704,
+        "status": "Aproximación a muelle",
+        "eta": "15:45",
+        "badge_color": "#0284c7",
+        "icon": "⛴️",
+    })
+
+    # Buque 3: Naviera Armas Volcán de Tagoro
+    fleet.append({
+        "id": "VESSEL_ARMAS_01",
+        "label": "Volcán de Tagoro (Naviera Armas)",
+        "mode": "maritime",
+        "operator": "NAVIERA_ARMAS",
+        "operator_name": "Naviera Armas",
+        "line": "ARMAS-01",
+        "destination": "Santa Cruz de Tenerife",
+        "origin": "Puerto de La Luz (Las Palmas)",
+        "lat": 28.2400,
+        "lon": -15.6500,
+        "speed_kmh": 59.2,  # ~32 nudos
+        "course_deg": 280,
+        "occupancy_rate": 0.81,
+        "capacity": 1050,
+        "passengers": 850,
+        "status": "En navegación (32 kts)",
+        "eta": "17:10",
+        "badge_color": "#dc2626",
+        "icon": "🚢",
+    })
+
+    # Buque 4: Baleària Marie Curie (Smart Ship GNL)
+    fleet.append({
+        "id": "VESSEL_BAL_01",
+        "label": "Marie Curie (Baleària - Smart Ship GNL)",
+        "mode": "maritime",
+        "operator": "BALEARIA",
+        "operator_name": "Baleària",
+        "line": "BAL-01",
+        "destination": "Santa Cruz de Tenerife",
+        "origin": "Puerto de La Luz (Las Palmas)",
+        "lat": 28.3100,
+        "lon": -15.8600,
+        "speed_kmh": 64.8,  # ~35 nudos
+        "course_deg": 295,
+        "occupancy_rate": 0.68,
+        "capacity": 810,
+        "passengers": 550,
+        "status": "Navegación ecológica GNL (35 kts)",
+        "eta": "16:45",
+        "badge_color": "#008779",
+        "icon": "🛳️",
+    })
+
+    # 2. Guaguas Municipales en la Capital
+    gm_units = [
+        {"id": "GM_BUS_101", "line": "12", "dest": "Manuel Becerra (Puerto)", "lat": 28.1280, "lon": -15.4240, "pax": 52, "cap": 90, "color": "#d97706"},
+        {"id": "GM_BUS_102", "line": "01", "dest": "Teatro / Triana", "lat": 28.1150, "lon": -15.4200, "pax": 44, "cap": 75, "color": "#f59e0b"},
+        {"id": "GM_BUS_103", "line": "25", "dest": "Campus de Tafira", "lat": 28.0920, "lon": -15.4380, "pax": 61, "cap": 75, "color": "#eab308"},
+        {"id": "GM_BUS_104", "line": "MG", "dest": "Hoya de la Plata", "lat": 28.1400, "lon": -15.4290, "pax": 78, "cap": 130, "color": "#b45309"},
+    ]
+    for gm in gm_units:
+        fleet.append({
+            "id": gm["id"],
+            "label": f"Guagua Municipal {gm['line']}",
+            "mode": "urban_bus",
+            "operator": "GUAGUAS_MUNICIPALES",
+            "operator_name": "Guaguas Municipales",
+            "line": gm["line"],
+            "destination": gm["dest"],
+            "origin": "Capital",
+            "lat": gm["lat"],
+            "lon": gm["lon"],
+            "speed_kmh": round(float(np.random.uniform(18, 38)), 1),
+            "course_deg": int(np.random.uniform(0, 360)),
+            "occupancy_rate": round(gm["pax"] / gm["cap"], 2),
+            "capacity": gm["cap"],
+            "passengers": gm["pax"],
+            "status": "En servicio urbano",
+            "eta": "En ruta",
+            "badge_color": gm["color"],
+            "icon": "🟡",
+        })
+
+    # 3. Global Interurbano (Gran Canaria)
+    global_units = [
+        {"id": "GL_BUS_301", "line": "303", "dest": "Campus Tafira / San Mateo", "lat": 28.0850, "lon": -15.4390, "pax": 42, "cap": 65},
+        {"id": "GL_BUS_302", "line": "30", "dest": "Faro de Maspalomas", "lat": 27.8850, "lon": -15.4200, "pax": 58, "cap": 65},
+        {"id": "GL_BUS_303", "line": "103", "dest": "Agaete (Puerto Las Nieves)", "lat": 28.1380, "lon": -15.6100, "pax": 39, "cap": 65},
+        {"id": "GL_BUS_304", "line": "60", "dest": "Aeropuerto LPA Express", "lat": 28.0100, "lon": -15.4100, "pax": 31, "cap": 65},
+        {"id": "GL_BUS_305", "line": "01", "dest": "Puerto de Mogán", "lat": 27.7700, "lon": -15.6500, "pax": 55, "cap": 65},
+        {"id": "GL_BUS_306", "line": "50", "dest": "Maspalomas Directo GC-1", "lat": 27.8200, "lon": -15.4300, "pax": 49, "cap": 65},
+        {"id": "GL_BUS_307", "line": "91", "dest": "Puerto Rico / Mogán", "lat": 27.7900, "lon": -15.7000, "pax": 52, "cap": 65},
+    ]
+    for gl in global_units:
+        fleet.append({
+            "id": gl["id"],
+            "label": f"Global Línea {gl['line']}",
+            "mode": "interurban_bus",
+            "operator": "GLOBAL",
+            "operator_name": "Global (Salcai Utinsa)",
+            "line": gl["line"],
+            "destination": gl["dest"],
+            "origin": "San Telmo",
+            "lat": gl["lat"],
+            "lon": gl["lon"],
+            "speed_kmh": round(float(np.random.uniform(45, 82)), 1),
+            "course_deg": int(np.random.uniform(0, 360)),
+            "occupancy_rate": round(gl["pax"] / gl["cap"], 2),
+            "capacity": gl["cap"],
+            "passengers": gl["pax"],
+            "status": "En autovía / corredor",
+            "eta": "En ruta",
+            "badge_color": "#00778b",
+            "icon": "🚌",
+        })
+
+    # 4. TITSA (Transportes Interurbanos de Tenerife)
+    titsa_units = [
+        {"id": "TF_BUS_401", "line": "110", "dest": "Costa Adeje (Directo TF-1)", "lat": 28.2400, "lon": -16.4200, "pax": 48, "cap": 60, "color": "#4d7c0f"},
+        {"id": "TF_BUS_402", "line": "015", "dest": "La Laguna (Padre Anchieta)", "lat": 28.4720, "lon": -16.2950, "pax": 54, "cap": 60, "color": "#65a30d"},
+        {"id": "TF_BUS_403", "line": "102", "dest": "Puerto de la Cruz", "lat": 28.4350, "lon": -16.4800, "pax": 38, "cap": 60, "color": "#84cc16"},
+        {"id": "TF_BUS_404", "line": "111", "dest": "Aeropuerto TFS / Adeje", "lat": 28.1100, "lon": -16.5300, "pax": 51, "cap": 60, "color": "#84cc16"},
+    ]
+    for tf in titsa_units:
+        fleet.append({
+            "id": tf["id"],
+            "label": f"TITSA Línea {tf['line']}",
+            "mode": "interurban_bus",
+            "operator": "TITSA",
+            "operator_name": "TITSA Tenerife",
+            "line": tf["line"],
+            "destination": tf["dest"],
+            "origin": "Intercambiador Santa Cruz",
+            "lat": tf["lat"],
+            "lon": tf["lon"],
+            "speed_kmh": round(float(np.random.uniform(42, 80)), 1),
+            "course_deg": int(np.random.uniform(0, 360)),
+            "occupancy_rate": round(tf["pax"] / tf["cap"], 2),
+            "capacity": tf["cap"],
+            "passengers": tf["pax"],
+            "status": "En servicio insular Tenerife",
+            "eta": "En ruta",
+            "badge_color": tf["color"],
+            "icon": "🟢",
+        })
+
+    # 5. METROTENERIFE (Tranvía de Tenerife)
+    fleet.append({
+        "id": "TF_TRAM_501",
+        "label": "Tranvía Metrotenerife L1",
+        "mode": "tram",
+        "operator": "METROTENERIFE",
+        "operator_name": "Metrotenerife",
+        "line": "T1",
+        "destination": "La Trinidad (La Laguna)",
+        "origin": "Intercambiador Santa Cruz",
+        "lat": 28.4700,
+        "lon": -16.2850,
+        "speed_kmh": 28.5,
+        "course_deg": 310,
+        "occupancy_rate": 0.70,
+        "capacity": 200,
+        "passengers": 140,
+        "status": "Tramo Hospital Univ. / Guajara",
+        "eta": "En frecuencia (cada 5 min)",
+        "badge_color": "#ef4444",
+        "icon": "🚊",
+    })
+
+    return fleet

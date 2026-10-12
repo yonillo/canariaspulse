@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 ENV/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -27,15 +28,32 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
 
 # Jupyter & IDE
 .ipynb_checkpoints
 .vscode/
 .idea/
 
-# Sistema operativo
+# Operating System
 .DS_Store
 Thumbs.db
+._*
 
-# Datos de gran volumen (si se desea excluir raw)
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+
+# Large datasets, SQLite databases & GTFS raw archives
+*.db
+*.sqlite
+*.sqlite3
+data/gtfs/*.db
+data/gtfs/**/*.db
+data/gtfs/**/*.zip
+data/gtfs/**/shapes.txt
+data/gtfs/**/stop_times.txt
+data/gtfs/**/._*
 data/processed/*.csv

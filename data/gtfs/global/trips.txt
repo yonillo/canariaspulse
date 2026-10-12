@@ -1,0 +1,239 @@
+trip_id,route_id,trip_headsign
+TR_L01_0600,L01,Puerto de Mogán
+TR_L01_0630,L01,Puerto de Mogán
+TR_L01_0700,L01,Puerto de Mogán
+TR_L01_0730,L01,Puerto de Mogán
+TR_L01_0800,L01,Puerto de Mogán
+TR_L01_0830,L01,Puerto de Mogán
+TR_L01_0900,L01,Puerto de Mogán
+TR_L01_0930,L01,Puerto de Mogán
+TR_L01_1000,L01,Puerto de Mogán
+TR_L01_1030,L01,Puerto de Mogán
+TR_L01_1100,L01,Puerto de Mogán
+TR_L01_1130,L01,Puerto de Mogán
+TR_L01_1200,L01,Puerto de Mogán
+TR_L01_1230,L01,Puerto de Mogán
+TR_L01_1300,L01,Puerto de Mogán
+TR_L01_1330,L01,Puerto de Mogán
+TR_L01_1400,L01,Puerto de Mogán
+TR_L01_1430,L01,Puerto de Mogán
+TR_L01_1500,L01,Puerto de Mogán
+TR_L01_1530,L01,Puerto de Mogán
+TR_L01_1600,L01,Puerto de Mogán
+TR_L01_1630,L01,Puerto de Mogán
+TR_L01_1700,L01,Puerto de Mogán
+TR_L01_1730,L01,Puerto de Mogán
+TR_L01_1800,L01,Puerto de Mogán
+TR_L01_1830,L01,Puerto de Mogán
+TR_L01_1900,L01,Puerto de Mogán
+TR_L01_1930,L01,Puerto de Mogán
+TR_L01_2000,L01,Puerto de Mogán
+TR_L01_2030,L01,Puerto de Mogán
+TR_L01_2100,L01,Puerto de Mogán
+TR_L01_2130,L01,Puerto de Mogán
+TR_L01_2200,L01,Puerto de Mogán
+TR_L01_2230,L01,Puerto de Mogán
+TR_L30_0600,L30,Faro de Maspalomas (Directo)
+TR_L30_0630,L30,Faro de Maspalomas (Directo)
+TR_L30_0700,L30,Faro de Maspalomas (Directo)
+TR_L30_0730,L30,Faro de Maspalomas (Directo)
+TR_L30_0800,L30,Faro de Maspalomas (Directo)
+TR_L30_0830,L30,Faro de Maspalomas (Directo)
+TR_L30_0900,L30,Faro de Maspalomas (Directo)
+TR_L30_0930,L30,Faro de Maspalomas (Directo)
+TR_L30_1000,L30,Faro de Maspalomas (Directo)
+TR_L30_1030,L30,Faro de Maspalomas (Directo)
+TR_L30_1100,L30,Faro de Maspalomas (Directo)
+TR_L30_1130,L30,Faro de Maspalomas (Directo)
+TR_L30_1200,L30,Faro de Maspalomas (Directo)
+TR_L30_1230,L30,Faro de Maspalomas (Directo)
+TR_L30_1300,L30,Faro de Maspalomas (Directo)
+TR_L30_1330,L30,Faro de Maspalomas (Directo)
+TR_L30_1400,L30,Faro de Maspalomas (Directo)
+TR_L30_1430,L30,Faro de Maspalomas (Directo)
+TR_L30_1500,L30,Faro de Maspalomas (Directo)
+TR_L30_1530,L30,Faro de Maspalomas (Directo)
+TR_L30_1600,L30,Faro de Maspalomas (Directo)
+TR_L30_1630,L30,Faro de Maspalomas (Directo)
+TR_L30_1700,L30,Faro de Maspalomas (Directo)
+TR_L30_1730,L30,Faro de Maspalomas (Directo)
+TR_L30_1800,L30,Faro de Maspalomas (Directo)
+TR_L30_1830,L30,Faro de Maspalomas (Directo)
+TR_L30_1900,L30,Faro de Maspalomas (Directo)
+TR_L30_1930,L30,Faro de Maspalomas (Directo)
+TR_L30_2000,L30,Faro de Maspalomas (Directo)
+TR_L30_2030,L30,Faro de Maspalomas (Directo)
+TR_L30_2100,L30,Faro de Maspalomas (Directo)
+TR_L30_2130,L30,Faro de Maspalomas (Directo)
+TR_L30_2200,L30,Faro de Maspalomas (Directo)
+TR_L30_2230,L30,Faro de Maspalomas (Directo)
+TR_L50_0600,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0630,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0700,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0730,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0800,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0830,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0900,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_0930,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1000,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1030,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1100,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1130,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1200,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1230,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1300,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1330,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1400,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1430,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1500,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1530,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1600,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1630,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1700,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1730,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1800,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1830,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1900,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_1930,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_2000,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_2030,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_2100,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_2130,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_2200,L50,Faro de Maspalomas (Por Autopista)
+TR_L50_2230,L50,Faro de Maspalomas (Por Autopista)
+TR_L91_0600,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0630,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0700,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0730,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0800,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0830,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0900,L91,Puerto Rico / Mogán (Directo)
+TR_L91_0930,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1000,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1030,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1100,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1130,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1200,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1230,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1300,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1330,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1400,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1430,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1500,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1530,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1600,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1630,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1700,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1730,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1800,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1830,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1900,L91,Puerto Rico / Mogán (Directo)
+TR_L91_1930,L91,Puerto Rico / Mogán (Directo)
+TR_L91_2000,L91,Puerto Rico / Mogán (Directo)
+TR_L91_2030,L91,Puerto Rico / Mogán (Directo)
+TR_L91_2100,L91,Puerto Rico / Mogán (Directo)
+TR_L91_2130,L91,Puerto Rico / Mogán (Directo)
+TR_L91_2200,L91,Puerto Rico / Mogán (Directo)
+TR_L91_2230,L91,Puerto Rico / Mogán (Directo)
+TR_L303_0600,L303,San Mateo
+TR_L303_0630,L303,San Mateo
+TR_L303_0700,L303,San Mateo
+TR_L303_0730,L303,San Mateo
+TR_L303_0800,L303,San Mateo
+TR_L303_0830,L303,San Mateo
+TR_L303_0900,L303,San Mateo
+TR_L303_0930,L303,San Mateo
+TR_L303_1000,L303,San Mateo
+TR_L303_1030,L303,San Mateo
+TR_L303_1100,L303,San Mateo
+TR_L303_1130,L303,San Mateo
+TR_L303_1200,L303,San Mateo
+TR_L303_1230,L303,San Mateo
+TR_L303_1300,L303,San Mateo
+TR_L303_1330,L303,San Mateo
+TR_L303_1400,L303,San Mateo
+TR_L303_1430,L303,San Mateo
+TR_L303_1500,L303,San Mateo
+TR_L303_1530,L303,San Mateo
+TR_L303_1600,L303,San Mateo
+TR_L303_1630,L303,San Mateo
+TR_L303_1700,L303,San Mateo
+TR_L303_1730,L303,San Mateo
+TR_L303_1800,L303,San Mateo
+TR_L303_1830,L303,San Mateo
+TR_L303_1900,L303,San Mateo
+TR_L303_1930,L303,San Mateo
+TR_L303_2000,L303,San Mateo
+TR_L303_2030,L303,San Mateo
+TR_L303_2100,L303,San Mateo
+TR_L303_2130,L303,San Mateo
+TR_L303_2200,L303,San Mateo
+TR_L303_2230,L303,San Mateo
+TR_L103_0600,L103,Agaete (Puerto)
+TR_L103_0630,L103,Agaete (Puerto)
+TR_L103_0700,L103,Agaete (Puerto)
+TR_L103_0730,L103,Agaete (Puerto)
+TR_L103_0800,L103,Agaete (Puerto)
+TR_L103_0830,L103,Agaete (Puerto)
+TR_L103_0900,L103,Agaete (Puerto)
+TR_L103_0930,L103,Agaete (Puerto)
+TR_L103_1000,L103,Agaete (Puerto)
+TR_L103_1030,L103,Agaete (Puerto)
+TR_L103_1100,L103,Agaete (Puerto)
+TR_L103_1130,L103,Agaete (Puerto)
+TR_L103_1200,L103,Agaete (Puerto)
+TR_L103_1230,L103,Agaete (Puerto)
+TR_L103_1300,L103,Agaete (Puerto)
+TR_L103_1330,L103,Agaete (Puerto)
+TR_L103_1400,L103,Agaete (Puerto)
+TR_L103_1430,L103,Agaete (Puerto)
+TR_L103_1500,L103,Agaete (Puerto)
+TR_L103_1530,L103,Agaete (Puerto)
+TR_L103_1600,L103,Agaete (Puerto)
+TR_L103_1630,L103,Agaete (Puerto)
+TR_L103_1700,L103,Agaete (Puerto)
+TR_L103_1730,L103,Agaete (Puerto)
+TR_L103_1800,L103,Agaete (Puerto)
+TR_L103_1830,L103,Agaete (Puerto)
+TR_L103_1900,L103,Agaete (Puerto)
+TR_L103_1930,L103,Agaete (Puerto)
+TR_L103_2000,L103,Agaete (Puerto)
+TR_L103_2030,L103,Agaete (Puerto)
+TR_L103_2100,L103,Agaete (Puerto)
+TR_L103_2130,L103,Agaete (Puerto)
+TR_L103_2200,L103,Agaete (Puerto)
+TR_L103_2230,L103,Agaete (Puerto)
+TR_L12_0600,L12,Telde
+TR_L12_0630,L12,Telde
+TR_L12_0700,L12,Telde
+TR_L12_0730,L12,Telde
+TR_L12_0800,L12,Telde
+TR_L12_0830,L12,Telde
+TR_L12_0900,L12,Telde
+TR_L12_0930,L12,Telde
+TR_L12_1000,L12,Telde
+TR_L12_1030,L12,Telde
+TR_L12_1100,L12,Telde
+TR_L12_1130,L12,Telde
+TR_L12_1200,L12,Telde
+TR_L12_1230,L12,Telde
+TR_L12_1300,L12,Telde
+TR_L12_1330,L12,Telde
+TR_L12_1400,L12,Telde
+TR_L12_1430,L12,Telde
+TR_L12_1500,L12,Telde
+TR_L12_1530,L12,Telde
+TR_L12_1600,L12,Telde
+TR_L12_1630,L12,Telde
+TR_L12_1700,L12,Telde
+TR_L12_1730,L12,Telde
+TR_L12_1800,L12,Telde
+TR_L12_1830,L12,Telde
+TR_L12_1900,L12,Telde
+TR_L12_1930,L12,Telde
+TR_L12_2000,L12,Telde
+TR_L12_2030,L12,Telde
+TR_L12_2100,L12,Telde
+TR_L12_2130,L12,Telde
+TR_L12_2200,L12,Telde
+TR_L12_2230,L12,Telde
